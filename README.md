@@ -4,28 +4,48 @@
 
 Source DUNE:
 ```md
-$ source /cvmfs/dune.opensciencegrid.org/products/dune/setup_dune.sh
+source /cvmfs/dune.opensciencegrid.org/products/dune/setup_dune.sh
+```
+Then you need to setup larsoft, I used the version v09_53_02
+```md
+setup larsoft v09_53_02 -q e20:prof
+```
+Create a env in a work folder with
+```md
+mrb newDev
+```
+The source the local products 
+```md
+source localProducts*/setup
 ```
 
-
-Then you need to setup larsoft, I used the version v09_53_02
-$ setup larsoft v09_53_02 -q e20:prof
-Create a env in a work folder with
-$ mrb newDev
-The source the local products 
-$ source localProducts*/setup
-Then we can fork in the source direcroty
-$ cd srcs
-$ git clone (this repo)
+Then you can fork in the source direcroty
+```md
+cd srcs
+```
+```md
+git clone (this repo)
+```
 You also gonna need dunesim repo from DUNE (check the tags for the same larsift version)
-$ git clone (dunesim)
+```md
+git clone (dunesim)
+```
 Update cmake lists files
-$ mrb uc
+```md
+mrb uc
+```
+
 Set environment
-$ mrbsetenv 
+```md
+mrbsetenv 
+```
 If everything is ok, you can install the packages 
-$ cd $MRB_BUILDDIR
-$ mrb i -j4
+```md
+cd $MRB_BUILDDIR
+```
+```md
+mrb i -j4
+```
 
 And voilá! You should probably be able to run the codes. 
 
