@@ -134,7 +134,7 @@ FDSelection::PandrizzleAlg::PandrizzleAlg(const fhicl::ParameterSet& pset) :
     cet::search_path sP("FW_SEARCH_PATH");
     sP.find_file(weightFileName, weightFilePath);
 
-    fReader.BookMVA("BDTG","/dune/app/users/lperes/env_larsoft_v09_49_00/localProducts_larsoft_v09_49_00_e20_prof/duneana/v09_49_00d00/weights/Pandrizzle_TMVAClassification_BDTG.weights.xml");
+    fReader.BookMVA("BDTG","Pandrizzle_TMVAClassification_BDTG.weights.xml");
 
     if (fMakeTree)
     {

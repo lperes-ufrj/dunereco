@@ -797,7 +797,7 @@ void FDSelection::CCNuSelection::beginJob()
   fPandizzleReader.AddVariable("PFPTrackdEdxEnd",&fHookUpTMVAPFPTrackdEdxEnd);
   fPandizzleReader.AddVariable("PFPTrackdEdxEndRatio",&fHookUpTMVAPFPTrackdEdxEndRatio);
 
-  fPandizzleReader.BookMVA("BDTG","/dune/app/users/lperes/env_larsoft_v09_49_00/localProducts_larsoft_v09_49_00_e20_prof/duneana/v09_49_00d00/weights/Pandizzle_TMVAClassification_BDTG.weights.xml");
+  fPandizzleReader.BookMVA("BDTG","Pandizzle_TMVAClassification_BDTG.weights.xml");
 
   // Implementation of optional member function here.
     art::ServiceHandle<art::TFileService> tfs;
