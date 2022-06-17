@@ -1,11 +1,13 @@
 # dunereco with Pand+atm+bdm Codes 
 
 ## To install
+
+Source DUNE:
 ```md
-[![card](https://github-readme-stats.vercel.app/api/pin/?username=iuricode&repo=readme-template)](https://github.com/iuricode/)
+$ source /cvmfs/dune.opensciencegrid.org/products/dune/setup_dune.sh
 ```
 
-$ source /cvmfs/dune.opensciencegrid.org/products/dune/setup_dune.sh
+
 Then you need to setup larsoft, I used the version v09_53_02
 $ setup larsoft v09_53_02 -q e20:prof
 Create a env in a work folder with
