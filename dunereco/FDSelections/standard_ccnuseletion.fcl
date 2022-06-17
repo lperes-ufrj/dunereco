@@ -1,0 +1,92 @@
+#include "services_dune.fcl"
+#include "CCNuSelection.fcl"
+#include "trackfindermodules.fcl"
+#include "mvamodule.fcl"
+#include "energyreco.fcl"
+
+process_name: CCNuSelection
+
+services:
+{
+  # Load the service that manages root files for histograms.
+  TFileService: { fileName: "ccnutree.root" }
+  TimeTracker:       {}
+  RandomNumberGenerator: {}
+  MemoryTracker:         { } # default is one
+  message:      @local::dune_message_services_prod
+  FileCatalogMetadata:  @local::art_file_catalog_mc
+                        @table::dunefd_simulation_services
+  Geometry: @local::dune10kt_1x2x6_geo                    
+}
+#services.PhotonVisibilityService:      @local::dune35t_photonvisibilityservice
+#source is now a root file
+source:
+{
+  module_type: RootInput
+  maxEvents:  -1        # Number of events to create
+}
+
+# Define and configure some modules to do work on each event.
+# First modules are defined; they are scheduled later.
+# Modules are grouped by type.
+physics:
+{
+producers:
+    {
+#energyreconue:  @local::dunefd_nuenergyreco_pandora_numu
+#energyreconumu: @local::dunefd_nuenergyreco_pandora_nue
+   pid: {
+        module_type:		"MVAPID"
+    HitLabel:		"linecluster"
+    TrackLabel:		"pandoraTrack"
+#ShowerLabel:		"pandoraShower"
+    ShowerLabel:  "pandoraShower"
+    SpacePointLabel:	"pandora"
+                  CalorimetryAlg:          @local::dune10kt_calorimetryalgmc
+    MVAMethods:		[ "electron","muon","photon","pich","proton" ]
+    WeightFiles:		[ "mvapid_weights/electron_all_BDT.weights.xml",
+         "mvapid_weights/muon_all_BDT.weights.xml",
+                "mvapid_weights/photon_all_BDT.weights.xml",
+         "mvapid_weights/pich_all_BDT.weights.xml",
+         "mvapid_weights/proton_all_BDT.weights.xml" ]
+    }
+
+
+    }
+ analyzers:
+{
+ ccnuselection:      @local::CCNuSelection
+}
+ #define the output stream, there could be more than one if using filters 
+#stream1:  [ out1 ]
+ prod: [pid]
+#caf:  [ cafmaker]
+trigger_paths: [prod] 
+
+ #define the producer and filter modules for this path, order matters, 
+ #filters reject all following items.  see lines starting physics.producers below
+ ana:  [ ccnuselection ]
+
+ #end_paths is a keyword and contains the paths that do not modify the art::Event, 
+ #ie analyzers and output streams.  these all run simultaneously
+#end_paths:     [stream1,ana]  
+end_paths: [  ana]
+# end_paths:     [stream1]  
+}
+
+#block to define where the output goes.  if you defined a filter in the physics
+#block and put it in the trigger_paths then you need to put a SelectEvents: {SelectEvents: [XXX]}
+#entry in the output stream you want those to go to, where XXX is the label of the filter module(s)
+#outputs:
+#{
+# out1:
+# {
+#   module_type: RootOutput
+#   fileName:    "%ifb_%tc_merged.root"
+#   dataTier:    "full-reconstructed"
+#   compressionLevel: 1
+# }
+#}
+#physics.producers.energyreconue.RecoMethod:   2
+#physics.producers.energyreconumu.RecoMethod:  1
+
