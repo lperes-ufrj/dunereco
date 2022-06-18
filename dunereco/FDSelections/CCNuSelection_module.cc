@@ -750,6 +750,23 @@ FDSelection::CCNuSelection::CCNuSelection(fhicl::ParameterSet const & pset)
   //cet::search_path sp("FW_SEARCH_PATH");
   //sp.find_file(weight_file_name, weight_file_path);
 
+  std::cout << "fPandizzleWeightFileName = " << fPandizzleWeightFileName << std::endl;
+
+  fPandizzleReader.AddVariable("PFPMichelNHits",&fHookUpTMVAPFPMichelNHits);
+  fPandizzleReader.AddVariable("PFPMichelElectronMVA",&fHookUpTMVAPFPMichelElectronMVA);
+  fPandizzleReader.AddVariable("PFPMichelRecoEnergyPlane2",&fHookUpTMVAPFPMichelRecoEnergyPlane2);
+  fPandizzleReader.AddVariable("PFPTrackDeflecAngleSD",&fHookUpTMVAPFPTrackDeflecAngleSD);
+  fPandizzleReader.AddVariable("PFPTrackLength",&fHookUpTMVAPFPTrackLength);
+  fPandizzleReader.AddVariable("PFPTrackEvalRatio",&fHookUpTMVAPFPTrackEvalRatio);
+  fPandizzleReader.AddVariable("PFPTrackConcentration",&fHookUpTMVAPFPTrackConcentration);
+  fPandizzleReader.AddVariable("PFPTrackCoreHaloRatio",&fHookUpTMVAPFPTrackCoreHaloRatio);
+  fPandizzleReader.AddVariable("PFPTrackConicalness",&fHookUpTMVAPFPTrackConicalness);
+  fPandizzleReader.AddVariable("PFPTrackdEdxStart",&fHookUpTMVAPFPTrackdEdxStart);
+  fPandizzleReader.AddVariable("PFPTrackdEdxEnd",&fHookUpTMVAPFPTrackdEdxEnd);
+  fPandizzleReader.AddVariable("PFPTrackdEdxEndRatio",&fHookUpTMVAPFPTrackdEdxEndRatio);
+
+  fPandizzleReader.BookMVA("BDTG","/dune/app/users/lperes/env_dune/srcs/dunereco/dunereco/FDSelections/weights/Pandizzle_TMVAClassification_BDTG.weights.xml");
+
 }
 
 void FDSelection::CCNuSelection::analyze(art::Event const & evt)
@@ -782,22 +799,7 @@ void FDSelection::CCNuSelection::analyze(art::Event const & evt)
 void FDSelection::CCNuSelection::beginJob()
 {
 
-  std::cout << "fPandizzleWeightFileName = " << fPandizzleWeightFileName << std::endl;
 
-  fPandizzleReader.AddVariable("PFPMichelNHits",&fHookUpTMVAPFPMichelNHits);
-  fPandizzleReader.AddVariable("PFPMichelElectronMVA",&fHookUpTMVAPFPMichelElectronMVA);
-  fPandizzleReader.AddVariable("PFPMichelRecoEnergyPlane2",&fHookUpTMVAPFPMichelRecoEnergyPlane2);
-  fPandizzleReader.AddVariable("PFPTrackDeflecAngleSD",&fHookUpTMVAPFPTrackDeflecAngleSD);
-  fPandizzleReader.AddVariable("PFPTrackLength",&fHookUpTMVAPFPTrackLength);
-  fPandizzleReader.AddVariable("PFPTrackEvalRatio",&fHookUpTMVAPFPTrackEvalRatio);
-  fPandizzleReader.AddVariable("PFPTrackConcentration",&fHookUpTMVAPFPTrackConcentration);
-  fPandizzleReader.AddVariable("PFPTrackCoreHaloRatio",&fHookUpTMVAPFPTrackCoreHaloRatio);
-  fPandizzleReader.AddVariable("PFPTrackConicalness",&fHookUpTMVAPFPTrackConicalness);
-  fPandizzleReader.AddVariable("PFPTrackdEdxStart",&fHookUpTMVAPFPTrackdEdxStart);
-  fPandizzleReader.AddVariable("PFPTrackdEdxEnd",&fHookUpTMVAPFPTrackdEdxEnd);
-  fPandizzleReader.AddVariable("PFPTrackdEdxEndRatio",&fHookUpTMVAPFPTrackdEdxEndRatio);
-
-  fPandizzleReader.BookMVA("BDTG","Pandizzle_TMVAClassification_BDTG.weights.xml");
 
   // Implementation of optional member function here.
     art::ServiceHandle<art::TFileService> tfs;

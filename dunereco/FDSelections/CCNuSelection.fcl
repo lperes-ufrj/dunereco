@@ -7,7 +7,7 @@ BEGIN_PROLOG
 
 CCNuSelection:
 { 
- module_type:                 "duneana/FDSelections/CCNuSelection"
+ module_type:                 "CCNuSelection"
  ModuleLabels: {
    NuGenModuleLabel:            "generator" 
    LargeantModuleLabel:         "largeant"
@@ -26,8 +26,8 @@ CCNuSelection:
    NumuEnergyRecoModuleLabel:   "energyreconumu"
    NueEnergyRecoModuleLabel:    "energyreconue"
  }                                
- PandizzleWeightFileName:  "/dune/app/users/lperes/env_larsoft_v09_49_00/localProducts_larsoft_v09_49_00_e20_prof/duneana/v09_49_00d00/weights/Pandizzle_TMVAClassification_BDTG.weights.xml"
- PandrizzleWeightFileName: "/dune/app/users/lperes/env_larsoft_v09_49_00/localProducts_larsoft_v09_49_00_e20_prof/duneana/v09_49_00d00/weights/Pandrizzle_TMVAClassification_BDTG.weights.xml"
+ PandizzleWeightFileName:  "/dune/app/users/lperes/env_dune/srcs/dunereco/dunereco/FDSelections/weights/Pandizzle_TMVAClassification_BDTG.weights.xml"
+ PandrizzleWeightFileName: "/dune/app/users/lperes/env_dune/srcs/dunereco/dunereco/FDSelections/weights/Pandrizzle_TMVAClassification_BDTG.weights.xml"
 
    CVNModuleLabel: "cvneva"
 
