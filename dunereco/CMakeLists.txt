@@ -12,6 +12,7 @@ add_subdirectory(TrackFinderDUNE)
 add_subdirectory(TrackPID)
 add_subdirectory(VLNets)
 add_subdirectory(FDSelections)
+add_subdirectory(AtmosphericAna)
 
 # these two were not built in dunetpc at the time of the split
 # add_subdirectory(SNSlicer)

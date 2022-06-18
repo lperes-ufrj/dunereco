@@ -1,0 +1,23 @@
+#include "simulationservices_dune.fcl"
+#include "services_dune.fcl"
+
+BEGIN_PROLOG
+
+atmospheric:
+{
+   module_type:    "Atmospheric"
+   GeneratorModuleLabel: "generator"
+   GeantModuleLabel: "largeant"
+   PFParticleModuleLabel:     "pandora"
+   TrackModuleLabel:          "pandoraTrack"
+   ShowerModuleLabel:         "pandoraShower"
+   CaloModuleLabel: "pandoracalo"
+   PIDModuleLabel: "pandorapid"
+   SpacePointModuleLabel: "pandora"
+   SaveGeantInfo: "false"
+   CheatVertex:   "false"
+   ShowerRecoSave: "true"
+
+}
+
+END_PROLOG
