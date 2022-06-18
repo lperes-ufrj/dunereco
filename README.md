@@ -26,12 +26,21 @@ cd srcs
 ```md
 git clone (this repo)
 ```
-You also gonna need dunesim and duneopdet repos from DUNE (check the tags for the same larsift version)
+You also gonna need some dune repos from DUNE (check the tags for the same larsift version)
 ```md
 git clone (dunesim)
 ```
 ```md
 git clone (duneopdet)
+```
+```md
+git clone (duneprototypes)
+```
+```md
+git clone (dunedataprep)
+```
+```md
+git clone (dunesw)
 ```
 Update cmake lists files
 ```md
