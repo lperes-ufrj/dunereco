@@ -121,6 +121,7 @@ public:
   typedef art::Handle<std::vector<recob::Track>> TrackHandle;
   typedef art::Handle<std::vector<recob::Shower>> ShowerHandle;
   typedef art::Handle<std::vector<recob::SpacePoint>> SpacePointHandle;
+  typedef art::Handle<std::vector<recob::Hit>> HitHandle;
   typedef std::map<size_t, art::Ptr<recob::PFParticle>> PFParticleIdMap;
 
   typedef ROOT::Math::PositionVector3D<ROOT::Math::Cartesian3D<Coord_t>, ROOT::Math::GlobalCoordinateSystemTag> vtxPos;
@@ -226,6 +227,9 @@ private:
   double fHighestShowerSummedADC;
   double fLargeShowerOpenAngle;
   double fLongestShower;
+  float fCVN_NCProbability;
+  double fFracTotalChargeLongTrack;
+  double fAvarageTrackLength;
 
   //BackTracking
   std::vector<int> fDaughterTrackTruePDG;
@@ -261,6 +265,8 @@ private:
   std::string fCaloModuleLabel;
   std::string fPIDModuleLabel;
   std::string fSpacePointModuleLabel;
+  std::string fHitModuleLabel;
+  std::string fCVNModuleLabel;
   bool fSaveGeantInfo;
   bool fCheatVertex;
   bool fShowerRecoSave;
@@ -279,6 +285,8 @@ atm::Atmospheric::Atmospheric(fhicl::ParameterSet const &p)
       fCaloModuleLabel(p.get<std::string>("CaloModuleLabel")),
       fPIDModuleLabel(p.get<std::string>("PIDModuleLabel")),
       fSpacePointModuleLabel(p.get<std::string>("SpacePointModuleLabel")),
+      fHitModuleLabel(p.get<std::string>("HitModuleLabel")),
+      fCVNModuleLabel(p.get<std::string>("CVNModuleLabel")),
       fSaveGeantInfo(p.get<bool>("SaveGeantInfo")),
       fCheatVertex(p.get<bool>("CheatVertex")),
       fShowerRecoSave(p.get<bool>("ShowerRecoSave"))
@@ -302,6 +310,9 @@ void atm::Atmospheric::ResetCounters()
   fHighestShowerSummedADC = 0;
   fLargeShowerOpenAngle = 0;
   fLongestShower = 0;
+  fCVN_NCProbability = 0;
+  fFracTotalChargeLongTrack = 0;
+  fAvarageTrackLength = 0;  
 
   fCCNC.clear();
   fNPrimaryDaughters.clear();
@@ -397,9 +408,18 @@ void atm::Atmospheric::analyze(art::Event const &evt)
   m_run = evt.run();
   m_event = evt.id().event();
 
+ // std::cout << "  Run: " << m_run << std::endl;
+ // std::cout << "  Event: " << m_event << std::endl;
 
-  std::cout << "  Run: " << m_run << std::endl;
-  std::cout << "  Event: " << m_event << std::endl;
+    // Get CVN results
+  art::Handle<std::vector<cvn::Result>> cvnResult;
+  evt.getByLabel(fCVNModuleLabel, "cvnresult", cvnResult); //not sure if i need an instance name?? 
+
+  if(!cvnResult->empty()) 
+  {
+      fCVN_NCProbability = (*cvnResult)[0].GetNCProbability();
+  }
+
 
   std::map<int,float> PDGtoMass;
   PDGtoMass.insert(std::pair<int,float>(2212, 0.938272));
@@ -481,6 +501,7 @@ void atm::Atmospheric::analyze(art::Event const &evt)
     fTotalMomentumUnitVect = TotalMomTrueXYZ;
   }
 
+    m_AllEvents->Fill();
 
   // Collect the PFParticles from the event
   PFParticleHandle pfParticleHandle;
@@ -495,6 +516,10 @@ void atm::Atmospheric::analyze(art::Event const &evt)
   SpacePointHandle spacepointHandle;
   std::vector< art::Ptr<recob::SpacePoint> > SpacePointVect;
   if(evt.getByLabel(fPFParticleModuleLabel,spacepointHandle)) art::fill_ptr_vector(SpacePointVect, spacepointHandle);
+
+  HitHandle hitHandle;
+  std::vector< art::Ptr<recob::Hit> > HitVect;
+  if(evt.getByLabel(fHitModuleLabel,hitHandle)) art::fill_ptr_vector(HitVect, hitHandle);
 
 
 
@@ -555,6 +580,21 @@ void atm::Atmospheric::analyze(art::Event const &evt)
 
     fnSpacePoints+=SpacePointVect.size();
 
+    double TotalHitsADC = 0;
+
+    for (size_t iHit = 0; iHit < HitVect.size(); iHit++){
+
+      TotalHitsADC += HitVect[iHit]->SummedADC();
+
+    }
+
+
+    double LongestTrack = 1e-10;
+    double HighestTrackSummedADC = 1e-10;
+    long unsigned int LongestTrackID = -2;
+    double PIDALongestTrack = 0;
+    double AllLengthTracksSummed = 0;
+
   for (size_t iPfp = 0; iPfp < pfparticleVect.size(); iPfp++){
 
       if(pfparticleVect[iPfp]->Parent() != neutrinoID) continue;
@@ -567,10 +607,6 @@ void atm::Atmospheric::analyze(art::Event const &evt)
       if (!associatedTracks.empty())
       {
 
-        double LongestTrack = 1e-10;
-        double HighestTrackSummedADC = 1e-10;
-        long unsigned int LongestTrackID = -2;
-        double PIDALongestTrack = 0;
   
         // std::cout << "We have Tracks! Yep" << std::endl;
         for (const art::Ptr<recob::Track> &trk : associatedTracks)
@@ -594,6 +630,7 @@ void atm::Atmospheric::analyze(art::Event const &evt)
           }
           if(trackADC > fHighestTrackSummedADC) HighestTrackSummedADC = trackADC;
           
+          AllLengthTracksSummed += trk->Length();
           if(trk->Length() > LongestTrack){
               LongestTrack = trk->Length();
               LongestTrackID = trk.key();
@@ -729,9 +766,7 @@ void atm::Atmospheric::analyze(art::Event const &evt)
 
       } // Tracks- loop
 
-      fHighestTrackSummedADC = HighestTrackSummedADC;
-      fLongestTrack = LongestTrack;
-      fPIDALongestTrack = PIDALongestTrack;
+      fAvarageTrackLength =  AllLengthTracksSummed/fnTracks;
       
     }   // if there is a track
   }
@@ -787,6 +822,12 @@ void atm::Atmospheric::analyze(art::Event const &evt)
     //std::cout << "TotalMomentumRecoRange.Mag() = " << TotalMomentumRecoRange.Mag() << std::endl; 
     if (TotalMomentumRecoRange.Mag() > 0.0)
     {
+    
+    fHighestTrackSummedADC = HighestTrackSummedADC;
+    fLongestTrack = LongestTrack;
+    fPIDALongestTrack = PIDALongestTrack;
+    fFracTotalChargeLongTrack = HighestTrackSummedADC/TotalHitsADC;
+
     fTotalMomentumP = TotalMomentumRecoRange.Mag();
     fCosThetaDetTotalMom = TotalMomentumRecoRange.Unit().CosTheta();
     fCosPhiDetTotalMom = cos(TotalMomentumRecoRange.Unit().Phi());
@@ -800,7 +841,7 @@ void atm::Atmospheric::analyze(art::Event const &evt)
   //Fill the Tree just for a NC event, and if there is at least one track per event in the BDT variables
   if(TotalMomentumRecoRange.Mag() > 0) m_AtmTree->Fill();
 
-  m_AllEvents->Fill();
+
   
 }
 
@@ -971,6 +1012,8 @@ void atm::Atmospheric::beginJob()
   m_AtmTree->Branch("NPrimaryDaughters", &fNPrimaryDaughters);
   m_AtmTree->Branch("NPrimaries", &fNPrimaries);
   m_AtmTree->Branch("DaughterTrackID", &fDaughterTrackID);
+  m_AtmTree->Branch("CVN_NCProbability", &fCVN_NCProbability);
+  
 
   m_AtmTree->Branch("TrackStartX", &fTrackStartX);
   m_AtmTree->Branch("TrackStartY", &fTrackStartY);
@@ -999,6 +1042,9 @@ void atm::Atmospheric::beginJob()
   m_AtmTree->Branch("PrimaryPDGReco", &fPrimaryPDGReco);
   m_AtmTree->Branch("LargeShowerOpenAngle", &fLargeShowerOpenAngle);
   m_AtmTree->Branch("LongestShower", &fLongestShower);
+
+  m_AtmTree->Branch("FracTotalChargeLongTrack", &fFracTotalChargeLongTrack);
+  m_AtmTree->Branch("AvarageTrackLength", &fAvarageTrackLength);
 
   m_AtmTree->Branch("ShowerID", &fShowerID);
   m_AtmTree->Branch("ShowerDirectionX", &fShowerDirectionX);
@@ -1048,7 +1094,7 @@ void atm::Atmospheric::beginJob()
   m_AtmTree->Branch("isMCinside", &fisMCinside);
   m_AtmTree->Branch("TotalMomentumUnitVect", &fTotalMomentumUnitVect);
 
-    std::cout << " atm::Atmospheric::beginJob() - End" << std::endl;
+  //  std::cout << " atm::Atmospheric::beginJob() - End" << std::endl;
 }
 
 void atm::Atmospheric::endJob()

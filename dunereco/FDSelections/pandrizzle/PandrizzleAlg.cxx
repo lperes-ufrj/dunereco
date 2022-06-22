@@ -453,7 +453,7 @@ void FDSelection::PandrizzleAlg::ProcessPFParticle(const art::Ptr<recob::PFParti
         fVarHolder.FloatVars["Conicalness"] = std::min(static_cast<Float_t>(mvaPIDResult->conicalness), 100.f);
     }
 
-    art::FindManyP<larpandoraobj::PFParticleMetadata> metadataAssn(pfparticleListHandle, evt, "pandoraSel");
+    art::FindManyP<larpandoraobj::PFParticleMetadata> metadataAssn(pfparticleListHandle, evt, "pandora");
     std::vector<art::Ptr<larpandoraobj::PFParticleMetadata>> pfpMetadata = metadataAssn.at(pfp.key());
 
     //dEdx
@@ -684,7 +684,7 @@ FDSelection::PandrizzleAlg::Record FDSelection::PandrizzleAlg::RunPID(const art:
         ReturnEmptyRecord();
 
     art::Ptr<recob::PFParticle> matchedPFParticle = GetPFParticle(pShower, evt);
-    art::FindManyP<larpandoraobj::PFParticleMetadata> metadataAssn(pfparticleListHandle, evt, "pandoraSel");
+    art::FindManyP<larpandoraobj::PFParticleMetadata> metadataAssn(pfparticleListHandle, evt, "pandora");
     std::vector<art::Ptr<larpandoraobj::PFParticleMetadata>> pfpMetadata = metadataAssn.at(matchedPFParticle.key());
     larpandoraobj::PFParticleMetadata::PropertiesMap propertiesMap(pfpMetadata[0]->GetPropertiesMap());
 

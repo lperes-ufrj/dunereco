@@ -14,6 +14,8 @@ atmospheric:
    CaloModuleLabel: "pandoracalo"
    PIDModuleLabel: "pandorapid"
    SpacePointModuleLabel: "pandora"
+   HitModuleLabel: "linecluster"
+   CVNModuleLabel: "cvneva"
    SaveGeantInfo: "false"
    CheatVertex:   "false"
    ShowerRecoSave: "true"

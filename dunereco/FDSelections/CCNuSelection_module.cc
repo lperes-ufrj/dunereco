@@ -771,7 +771,7 @@ FDSelection::CCNuSelection::CCNuSelection(fhicl::ParameterSet const & pset)
 
 void FDSelection::CCNuSelection::analyze(art::Event const & evt)
 {
-  std::cout << "Event No. " << evt.event() << std::endl;
+  //std::cout << "Event No. " << evt.event() << std::endl;
   Reset(); //Reset at the start of the event
   //Get the generic stuff that can be pulled from the top of the record
 
@@ -2668,7 +2668,7 @@ void FDSelection::CCNuSelection::GetRecoShowerInfo(art::Event const & evt){
   }
 
   art::FindManyP<recob::Hit> fmhs(showerListHandle, evt, fShowerModuleLabel);
-  art::FindManyP<larpandoraobj::PFParticleMetadata> metadataAssn(pfparticleListHandle, evt, "pandoraSel");
+  art::FindManyP<larpandoraobj::PFParticleMetadata> metadataAssn(pfparticleListHandle, evt, "pandora");
 
   fNRecoShowers = (showerList.size() > kDefMaxNRecoShowers ? kDefMaxNRecoShowers : showerList.size());
 
