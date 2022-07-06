@@ -58,8 +58,7 @@
 #include "nusimdata/SimulationBase/MCNeutrino.h"
 #include "nusimdata/SimulationBase/MCParticle.h"
 #include "lardataobj/Simulation/GeneratedParticleInfo.h"
-#include "test/Geometry/geometry_unit_test_base.h"
-#include "larcorealg/Geometry/geo_vectors_utils.h"
+//#include "larcorealg/Geometry/geo_vectors_utils.h"
 #include "lardataobj/RecoBase/SpacePoint.h"
 #include "lardataobj/RecoBase/Track.h"
 #include "lardataobj/RecoBase/PFParticle.h"
@@ -81,7 +80,7 @@
 
 // Geometry includes
 #include "larcore/Geometry/Geometry.h"
-#include "test/Geometry/geometry_unit_test_base.h"
+#include "larcorealg/TestUtils/geometry_unit_test_base.h"
 #include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
 #include "larcoreobj/SimpleTypesAndConstants/geo_types.h"
 
