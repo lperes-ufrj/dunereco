@@ -350,10 +350,10 @@ void FDSelection::PandizzleAlg::FillTree(){
         mf::LogWarning("PandizzleAlg") << "Found candidate track with length < 0.  Not filling tree";
         return;
       }
-      fBackgroundTrackTree->Fill();
+      //fBackgroundTrackTree->Fill();
     }
     else if (fVarHolder.IntVars["PFPPDG"] == 11){ //shower
-      fBackgroundShowerTree->Fill();
+      //fBackgroundShowerTree->Fill();
     }
     else{ //Don't know
       mf::LogWarning("PandizzleAlg") << "Unknown PFP PDG when filling tree"<< fVarHolder.IntVars["PFPPDG"];

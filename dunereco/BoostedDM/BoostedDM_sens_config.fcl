@@ -1,0 +1,19 @@
+BEGIN_PROLOG
+
+sensitivity:
+{
+   module_type:    "Sensitivity"
+   GeneratorModuleLabel: "bdm"
+   GeantModuleLabel: "largeant"
+   PFParticleModuleLabel:     "pandora"
+   TrackModuleLabel:          "pandoraTrack"
+   ShowerModuleLabel:         "pandoraShower"
+   CaloModuleLabel: "pandoracalo"
+   PIDModuleLabel: "pandorapid"
+   SaveGeantInfo: "false"
+   CheatVertex:   "false"
+   ShowerRecoSave: "true"
+
+}
+
+END_PROLOG

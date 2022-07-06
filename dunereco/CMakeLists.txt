@@ -13,6 +13,7 @@ add_subdirectory(TrackPID)
 add_subdirectory(VLNets)
 add_subdirectory(FDSelections)
 add_subdirectory(AtmosphericAna)
+add_subdirectory(BoostedDM)
 
 # these two were not built in dunetpc at the time of the split
 # add_subdirectory(SNSlicer)

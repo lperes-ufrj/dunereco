@@ -177,15 +177,15 @@ private:
   std::vector<float> fTrackEndX, fTrackEndY, fTrackEndZ;
   std::vector<bool> fIsTrackFlipped;
 
-  std::vector<std::vector<float>> fDaughterTrackdEdx_Plane0;
-  std::vector<std::vector<float>> fDaughterTrackdEdx_Plane1;
-  std::vector<std::vector<float>> fDaughterTrackdEdx_Plane2;
-  std::vector<std::vector<float>> fDaughterTrackResidualRange_Plane0;
-  std::vector<std::vector<float>> fDaughterTrackResidualRange_Plane1;
-  std::vector<std::vector<float>> fDaughterTrackResidualRange_Plane2;
-  std::vector<float> fDaughterKE_Plane0;
-  std::vector<float> fDaughterKE_Plane1;
-  std::vector<float> fDaughterKE_Plane2;
+  //std::vector<std::vector<float>> fDaughterTrackdEdx_Plane0;
+  //std::vector<std::vector<float>> fDaughterTrackdEdx_Plane1;
+  //std::vector<std::vector<float>> fDaughterTrackdEdx_Plane2;
+  //std::vector<std::vector<float>> fDaughterTrackResidualRange_Plane0;
+  //std::vector<std::vector<float>> fDaughterTrackResidualRange_Plane1;
+  //std::vector<std::vector<float>> fDaughterTrackResidualRange_Plane2;
+  //std::vector<float> fDaughterKE_Plane0;
+  //std::vector<float> fDaughterKE_Plane1;
+  //std::vector<float> fDaughterKE_Plane2;
 
   std::vector<float> fminChi2value;
   std::vector<int> fminChi2PDG;
@@ -213,6 +213,8 @@ private:
   int    CaloPlane0, CaloPlane1, CaloPlane2;
   double ResRPlane0[kMaxHits], ResRPlane1[kMaxHits], ResRPlane2[kMaxHits];
   double dEdxPlane0[kMaxHits], dEdxPlane1[kMaxHits], dEdxPlane2[kMaxHits];
+
+  float fDistVertex = -1;
 
   //Reco BDT Variables
   double fCosThetaDetTotalMom;
@@ -310,9 +312,13 @@ void atm::Atmospheric::ResetCounters()
   fHighestShowerSummedADC = 0;
   fLargeShowerOpenAngle = 0;
   fLongestShower = 0;
-  fCVN_NCProbability = 0;
+  fCVN_NCProbability = -1;
   fFracTotalChargeLongTrack = 0;
-  fAvarageTrackLength = 0;  
+  fAvarageTrackLength = 0;
+
+
+  fDistVertex = -2;
+
 
   fCCNC.clear();
   fNPrimaryDaughters.clear();
@@ -333,12 +339,12 @@ void atm::Atmospheric::ResetCounters()
   fPrimaryRecoVertex.clear();
   
 
-  fDaughterTrackdEdx_Plane0.clear();
-  fDaughterTrackdEdx_Plane1.clear();
-  fDaughterTrackdEdx_Plane2.clear();
-  fDaughterTrackResidualRange_Plane0.clear();
-  fDaughterTrackResidualRange_Plane1.clear();
-  fDaughterTrackResidualRange_Plane2.clear();  
+  //fDaughterTrackdEdx_Plane0.clear();
+  //fDaughterTrackdEdx_Plane1.clear();
+  //fDaughterTrackdEdx_Plane2.clear();
+  //fDaughterTrackResidualRange_Plane0.clear();
+  //fDaughterTrackResidualRange_Plane1.clear();
+  //fDaughterTrackResidualRange_Plane2.clear();  
 
   fminChi2PDG.clear();
   fminChi2value.clear();
@@ -567,6 +573,7 @@ void atm::Atmospheric::analyze(art::Event const &evt)
        // vtx->XYZ(VertexXYZ);
 
         fPrimaryRecoVertex.push_back({vertex.X(),vertex.Y(),vertex.Z()});
+        fDistVertex = pow(pow((fMCInitialPositionNu.at(0).at(0)-vertex.X()),2)+pow((fMCInitialPositionNu.at(0).at(1)-vertex.Y()),2)+pow((fMCInitialPositionNu.at(0).at(2)-vertex.Z()),2),0.5);
       }
 
       neutrinoID = pfparticleVect[iPfp]->Self();
@@ -654,14 +661,8 @@ void atm::Atmospheric::analyze(art::Event const &evt)
               if(AlgScore.fAlgName == "Chi2") {
                 //Sum Chi2 hyphotesis all planes 
                 PDGtoChi2[AlgScore.fAssumedPdg] = AlgScore.fValue;
-                //std::cout << "------Track No.: " << trk.key() << std::endl;
-                //std::cout << "AlgScore.fAlgName: " << AlgScore.fAlgName << std::endl;
-                //std::cout << "AlgScore.fVariableType: " << AlgScore.fVariableType << std::endl;
-                //std::cout << "AlgScore.fTrackDir: " << AlgScore.fTrackDir << std::endl;
-                //std::cout << "AlgScore.fAssumedPdg: " << AlgScore.fAssumedPdg << std::endl;
-                //std::cout << "AlgScore.fNdf: " << AlgScore.fNdf << std::endl;
-                //std::cout << "AlgScore.fValue: " << AlgScore.fValue << std::endl;
-                //std::cout << "AlgScore.fPlaneMask: " << AlgScore.fPlaneMask[2] << std::endl;
+
+
               }
             }
           }
@@ -702,25 +703,25 @@ void atm::Atmospheric::analyze(art::Event const &evt)
             //  //std::cout << "temp_dEdx.at(final)= " << temp_dEdx.at(temp_dEdx.size() - 1) << std::endl;
             //}
 
-            if (planenum == 0)
-            {
-              fDaughterTrackdEdx_Plane0.push_back(temp_dEdx);
-              fDaughterTrackResidualRange_Plane0.push_back(cal->ResidualRange());
-              fDaughterKE_Plane0.push_back(cal->KineticEnergy());
-            }
-
-            if (planenum == 1)
-            {
-              fDaughterTrackdEdx_Plane1.push_back(temp_dEdx);
-              fDaughterTrackResidualRange_Plane1.push_back(cal->ResidualRange());
-              fDaughterKE_Plane1.push_back(cal->KineticEnergy());
-            }
+            //if (planenum == 0)
+            //{
+            //  fDaughterTrackdEdx_Plane0.push_back(temp_dEdx);
+            //  fDaughterTrackResidualRange_Plane0.push_back(cal->ResidualRange());
+            //  fDaughterKE_Plane0.push_back(cal->KineticEnergy());
+            //}
+//
+            //if (planenum == 1)
+            //{
+            //  fDaughterTrackdEdx_Plane1.push_back(temp_dEdx);
+            //  fDaughterTrackResidualRange_Plane1.push_back(cal->ResidualRange());
+            //  fDaughterKE_Plane1.push_back(cal->KineticEnergy());
+            //}
 
             if (planenum == 2)
             {
-              fDaughterTrackdEdx_Plane2.push_back(temp_dEdx);
-              fDaughterTrackResidualRange_Plane2.push_back(cal->ResidualRange());
-              fDaughterKE_Plane2.push_back(cal->KineticEnergy());
+              //fDaughterTrackdEdx_Plane2.push_back(temp_dEdx);
+              //fDaughterTrackResidualRange_Plane2.push_back(cal->ResidualRange());
+              //fDaughterKE_Plane2.push_back(cal->KineticEnergy());
               KE = cal->KineticEnergy();
             }
 
@@ -1023,15 +1024,15 @@ void atm::Atmospheric::beginJob()
   m_AtmTree->Branch("TrackEndZ", &fTrackEndZ);
 
   m_AtmTree->Branch("PrimaryRecoVertex", &fPrimaryRecoVertex);
-  m_AtmTree->Branch("DaughterTrackdEdx_Plane0", &fDaughterTrackdEdx_Plane0);
-  m_AtmTree->Branch("DaughterTrackResidualRange_Plane0", &fDaughterTrackResidualRange_Plane0);
-  m_AtmTree->Branch("DaughterKE_Plane0", &fDaughterKE_Plane0);
-  m_AtmTree->Branch("DaughterTrackdEdx_Plane1", &fDaughterTrackdEdx_Plane1);
-  m_AtmTree->Branch("DaughterTrackResidualRange_Plane1", &fDaughterTrackResidualRange_Plane1);
-  m_AtmTree->Branch("DaughterKE_Plane1", &fDaughterKE_Plane1);
-  m_AtmTree->Branch("DaughterTrackdEdx_Plane2", &fDaughterTrackdEdx_Plane2);
-  m_AtmTree->Branch("DaughterTrackResidualRange_Plane2", &fDaughterTrackResidualRange_Plane2);
-  m_AtmTree->Branch("DaughterKE_Plane2", &fDaughterKE_Plane2);
+  //m_AtmTree->Branch("DaughterTrackdEdx_Plane0", &fDaughterTrackdEdx_Plane0);
+  //m_AtmTree->Branch("DaughterTrackResidualRange_Plane0", &fDaughterTrackResidualRange_Plane0);
+  //m_AtmTree->Branch("DaughterKE_Plane0", &fDaughterKE_Plane0);
+  //m_AtmTree->Branch("DaughterTrackdEdx_Plane1", &fDaughterTrackdEdx_Plane1);
+  //m_AtmTree->Branch("DaughterTrackResidualRange_Plane1", &fDaughterTrackResidualRange_Plane1);
+  //m_AtmTree->Branch("DaughterKE_Plane1", &fDaughterKE_Plane1);
+  //m_AtmTree->Branch("DaughterTrackdEdx_Plane2", &fDaughterTrackdEdx_Plane2);
+  //m_AtmTree->Branch("DaughterTrackResidualRange_Plane2", &fDaughterTrackResidualRange_Plane2);
+  //m_AtmTree->Branch("DaughterKE_Plane2", &fDaughterKE_Plane2);
   m_AtmTree->Branch("PIDA_NoFlip", &fPIDANoFlip);
   m_AtmTree->Branch("PIDAwithFlipMaybe", &fPIDAwithFlipMaybe);
   m_AtmTree->Branch("HighestTrackSummedADC", &fHighestTrackSummedADC);
@@ -1068,6 +1069,7 @@ void atm::Atmospheric::beginJob()
   m_AtmTree->Branch("nSpacePoints", &fnSpacePoints);
   m_AtmTree->Branch("minChi2value", &fminChi2value);
   m_AtmTree->Branch("minChi2PDG", &fminChi2PDG);
+  m_AtmTree->Branch("DistVertex", &fDistVertex);
 
  // m_AtmTree->Branch("SunDirectionFromTrueBDM", &fSunDirectionFromTrueBDM);
  // m_AtmTree->Branch("TruePrimaryBDMVertex", &fPrimaryBDMVertex);
