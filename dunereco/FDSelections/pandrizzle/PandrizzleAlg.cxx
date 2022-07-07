@@ -129,12 +129,12 @@ FDSelection::PandrizzleAlg::PandrizzleAlg(const fhicl::ParameterSet& pset) :
         fJamReader.BookMVA("BDTG", jamWeightFilePath);
     }
 
-    //const std::string weightFileName(fPandrizzleWeightFileName);
-    //std::string weightFilePath;
-    //cet::search_path sP("FW_SEARCH_PATH");
-    //sP.find_file(weightFileName, weightFilePath);
+    const std::string weightFileName(fPandrizzleWeightFileName);
+    std::string weightFilePath;
+    cet::search_path sP("FW_SEARCH_PATH");
+    sP.find_file(weightFileName, weightFilePath);
 
-    fReader.BookMVA("BDTG","/dune/app/users/lperes/env_dune/srcs/dunereco/dunereco/FDSelections/weights/Pandrizzle_TMVAClassification_BDTG.weights.xml");
+    fReader.BookMVA("BDTG","/dune/app/users/lperes/env_dunereco/srcs/dunereco/dunereco/FDSelections/weights/Pandrizzle_TMVAClassification_BDTG.weights.xml");
 
     if (fMakeTree)
     {

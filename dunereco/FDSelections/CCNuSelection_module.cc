@@ -765,7 +765,7 @@ FDSelection::CCNuSelection::CCNuSelection(fhicl::ParameterSet const & pset)
   fPandizzleReader.AddVariable("PFPTrackdEdxEnd",&fHookUpTMVAPFPTrackdEdxEnd);
   fPandizzleReader.AddVariable("PFPTrackdEdxEndRatio",&fHookUpTMVAPFPTrackdEdxEndRatio);
 
-  fPandizzleReader.BookMVA("BDTG","/dune/app/users/lperes/env_dune/srcs/dunereco/dunereco/FDSelections/weights/Pandizzle_TMVAClassification_BDTG.weights.xml");
+  fPandizzleReader.BookMVA("BDTG","/dune/app/users/lperes/env_dunereco/srcs/dunereco/dunereco/FDSelections/weights/Pandizzle_TMVAClassification_BDTG.weights.xml");
 
 }
 

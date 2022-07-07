@@ -26,8 +26,8 @@ CCNuSelection:
    NumuEnergyRecoModuleLabel:   "energyreconumu"
    NueEnergyRecoModuleLabel:    "energyreconue"
  }                                
- PandizzleWeightFileName:  "/dune/app/users/lperes/env_dune/srcs/dunereco/dunereco/FDSelections/weights/Pandizzle_TMVAClassification_BDTG.weights.xml"
- PandrizzleWeightFileName: "/dune/app/users/lperes/env_dune/srcs/dunereco/dunereco/FDSelections/weights/Pandrizzle_TMVAClassification_BDTG.weights.xml"
+ PandizzleWeightFileName:  "/dune/app/users/lperes/env_dunereco/srcs/dunereco/dunereco/FDSelections/weights/Pandizzle_TMVAClassification_BDTG.weights.xml"
+ PandrizzleWeightFileName: "/dune/app/users/lperes/env_dunereco/srcs/dunereco/dunereco/FDSelections/weights/Pandrizzle_TMVAClassification_BDTG.weights.xml"
 
    CVNModuleLabel: "cvneva"
 
