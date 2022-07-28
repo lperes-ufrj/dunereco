@@ -780,27 +780,34 @@ void FDSelection::CCNuSelection::analyze(art::Event const & evt)
   fEvent = evt.event();
   fIsMC = !(evt.isRealData());
 
+  
   GetEventInfo(evt);
+  std::cout << "GetEventInfo - ok!" << std::endl;
 
   if (fIsMC) GetTruthInfo(evt);
+    std::cout << "GetTruthInfo - ok!" << std::endl;
   FillVertexInformation(evt);
+  std::cout << "FillVertexInformation - ok!" << std::endl;
   GetRecoTrackInfo(evt);
+  std::cout << "GetRecoTrackInfo - ok!" << std::endl;
   RunTrackSelection(evt);
+  std::cout << "RunTrackSelection - ok!" << std::endl;
   GetRecoShowerInfo(evt);
+   std::cout << "GetRecoShowerInfo - ok!" << std::endl;
   RunShowerSelection(evt);
+   std::cout << "RunShowerSelection - ok!" << std::endl;
 
   //fPIDAnaAlg.Run(evt);
   fPandizzleAlg.Run(evt);
+  std::cout << "fPandizzleAlg - ok!" << std::endl;
   fPandrizzleAlg.Run(evt);
+    std::cout << "fPandrizzleAlg - ok!" << std::endl;
 
   fTree->Fill();
 }
 
 void FDSelection::CCNuSelection::beginJob()
 {
-
-
-
   // Implementation of optional member function here.
     art::ServiceHandle<art::TFileService> tfs;
     fTree = tfs->make<TTree>("ccnusel","CC nu selection");

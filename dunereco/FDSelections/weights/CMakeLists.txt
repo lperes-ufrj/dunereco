@@ -6,5 +6,3 @@
 set( ${product}_weight_dir "${product}/${version}/weights" )
 file(GLOB xml_file *.xml )
 install( FILES ${xml_file} DESTINATION ${${product}_weight_dir} )
-
-

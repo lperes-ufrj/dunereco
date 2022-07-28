@@ -33,6 +33,7 @@ art_make( MODULE_LIBRARIES
 	  messagefacility::MF_MessageLogger
 	  fhiclcpp::fhiclcpp
 	  cetlib::cetlib cetlib_except
+	  NeutrinoEnergyRecoAlg
           ROOT_GEOM
           ROOT_XMLIO
           ROOT_GDML

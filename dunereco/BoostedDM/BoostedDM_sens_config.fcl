@@ -1,18 +1,32 @@
+#include "simulationservices_dune.fcl"
+#include "services_dune.fcl"
+
+#include "calorimetry_dune10kt.fcl"
+#include "showeralgorithms.fcl"
+#include "ctphelper.fcl"
+#include "neutrinoenergyrecoalg_dune.fcl"
+
 BEGIN_PROLOG
 
 sensitivity:
 {
    module_type:    "Sensitivity"
-   GeneratorModuleLabel: "bdm"
+   GeneratorModuleLabel: "generator"
    GeantModuleLabel: "largeant"
    PFParticleModuleLabel:     "pandora"
    TrackModuleLabel:          "pandoraTrack"
    ShowerModuleLabel:         "pandoraShower"
    CaloModuleLabel: "pandoracalo"
    PIDModuleLabel: "pandorapid"
+   SpacePointModuleLabel: "pandora"
+   HitModuleLabel: "linecluster"
+   CVNModuleLabel: "cvneva"
+   MVAPIDModuleLabel: "pid"
    SaveGeantInfo: "false"
    CheatVertex:   "false"
    ShowerRecoSave: "true"
+   WireModuleLabel:  "caldata"
+   NeutrinoEnergyRecoAlg:       @local::dune10kt_neutrinoenergyrecoalg
 
 }
 

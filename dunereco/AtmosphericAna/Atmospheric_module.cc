@@ -77,6 +77,7 @@
 #include "larevt/SpaceCharge/SpaceCharge.h"
 #include "larevt/SpaceChargeServices/SpaceChargeService.h"
 #include "larreco/RecoAlg/TrackMomentumCalculator.h"
+#include "lardataobj/AnalysisBase/MVAPIDResult.h"
 //#include "larana/ParticleIdentification/Chi2PIDAlg.h"
 #include "larsim/Utils/TruthMatchUtils.h"
 #include "larsim/MCCheater/ParticleInventoryService.h"
@@ -96,8 +97,12 @@
 #include "dunereco/AnaUtils/DUNEAnaPFParticleUtils.h"
 #include "dunereco/AnaUtils/DUNEAnaTrackUtils.h"
 #include "dunereco/AnaUtils/DUNEAnaShowerUtils.h"
+#include "dunereco/FDSensOpt/NeutrinoEnergyRecoAlg/NeutrinoEnergyRecoAlg.h"
+#include "dunereco/FDSensOpt/FDSensOptData/EnergyRecoOutput.h"
 
-
+constexpr int kDefInt = -9999;
+constexpr int kDefMaxNRecoTracks = 1000;
+constexpr int kDefDoub = (double)(kDefInt);
 
 // Detector Limits =========================
 float fFidVolXmin = 0;
@@ -107,7 +112,7 @@ float fFidVolYmax = 0;
 float fFidVolZmin = 0;
 float fFidVolZmax = 0;
 
-const int kMaxHits = 250;
+
 
 namespace atm
 {
@@ -210,9 +215,6 @@ private:
   std::vector<std::vector<double>> fShowerEnergy;
   std::vector<double> fPIDANoFlip;
   std::vector<double> fPIDAwithFlipMaybe;
-  int    CaloPlane0, CaloPlane1, CaloPlane2;
-  double ResRPlane0[kMaxHits], ResRPlane1[kMaxHits], ResRPlane2[kMaxHits];
-  double dEdxPlane0[kMaxHits], dEdxPlane1[kMaxHits], dEdxPlane2[kMaxHits];
 
   float fDistVertex = -1;
 
@@ -232,9 +234,45 @@ private:
   float fCVN_NCProbability;
   double fFracTotalChargeLongTrack;
   double fAvarageTrackLength;
+  float fEventRecoEnergy;
+
+  //Check Direction 
+
+  double fDiffCosAngleTotalMom;
+  double fDiffCosAngleLongestTrack;
+
+
+  //MVA bits
+  std::vector<double> fRecoTrackMVAEvalRatio;
+  std::vector<double> fRecoTrackMVAConcentration;
+  std::vector<double> fRecoTrackMVACoreHaloRatio;
+  std::vector<double> fRecoTrackMVAConicalness;
+  std::vector<double> fRecoTrackMVAdEdxStart;
+  std::vector<double> fRecoTrackMVAdEdxEnd;
+  std::vector<double> fRecoTrackMVAdEdxEndRatio;
+  std::vector<double> fRecoTrackMVAElectron;
+  std::vector<double> fRecoTrackMVAPion;
+  std::vector<double> fRecoTrackMVAMuon;
+  std::vector<double> fRecoTrackMVAProton;
+  std::vector<double> fRecoTrackMVAPhoton;
+
 
   //BackTracking
   std::vector<int> fDaughterTrackTruePDG;
+  std::vector<int> fRecoTrackTruePDG;
+  std::vector<bool> fRecoTrackTruePrimary;
+  std::vector<double> fRecoTrackTrueMomX;
+  std::vector<double> fRecoTrackTrueMomY;
+  std::vector<double> fRecoTrackTrueMomZ;
+  std::vector<double> fRecoTrackTrueMomT;
+  std::vector<double> fRecoTrackTrueStartX;
+  std::vector<double> fRecoTrackTrueStartY;
+  std::vector<double> fRecoTrackTrueStartZ;
+  std::vector<double> fRecoTrackTrueStartT;
+  std::vector<double> fRecoTrackTrueEndX;
+  std::vector<double> fRecoTrackTrueEndY;
+  std::vector<double> fRecoTrackTrueEndZ;
+  std::vector<double> fRecoTrackTrueEndT;
  
   //Truth information
   std::vector<int> fCCNC;
@@ -269,11 +307,15 @@ private:
   std::string fSpacePointModuleLabel;
   std::string fHitModuleLabel;
   std::string fCVNModuleLabel;
+  std::string fMVAPIDModuleLabel;
   bool fSaveGeantInfo;
   bool fCheatVertex;
   bool fShowerRecoSave;
+  std::string fWireModuleLabel;
+
 
   trkf::TrackMomentumCalculator trkm;
+  dune::NeutrinoEnergyRecoAlg fNeutrinoEnergyRecoAlg;
 
 };
 
@@ -289,9 +331,13 @@ atm::Atmospheric::Atmospheric(fhicl::ParameterSet const &p)
       fSpacePointModuleLabel(p.get<std::string>("SpacePointModuleLabel")),
       fHitModuleLabel(p.get<std::string>("HitModuleLabel")),
       fCVNModuleLabel(p.get<std::string>("CVNModuleLabel")),
+      fMVAPIDModuleLabel(p.get<std::string>("MVAPIDModuleLabel")),
       fSaveGeantInfo(p.get<bool>("SaveGeantInfo")),
       fCheatVertex(p.get<bool>("CheatVertex")),
-      fShowerRecoSave(p.get<bool>("ShowerRecoSave"))
+      fShowerRecoSave(p.get<bool>("ShowerRecoSave")),
+      fWireModuleLabel(p.get<std::string>("WireModuleLabel")),
+      fNeutrinoEnergyRecoAlg(p.get<fhicl::ParameterSet>("NeutrinoEnergyRecoAlg"),fTrackModuleLabel,fShowerModuleLabel,
+        fHitModuleLabel,fWireModuleLabel,fTrackModuleLabel,fShowerModuleLabel,fPFParticleModuleLabel)
 {
   // Call appropriate consumes<>() for any products to be retrieved by this module.
 }
@@ -315,10 +361,12 @@ void atm::Atmospheric::ResetCounters()
   fCVN_NCProbability = -1;
   fFracTotalChargeLongTrack = 0;
   fAvarageTrackLength = 0;
+  fEventRecoEnergy = -1;
 
 
   fDistVertex = -2;
-
+  fDiffCosAngleTotalMom = -2;
+  fDiffCosAngleLongestTrack = -2;
 
   fCCNC.clear();
   fNPrimaryDaughters.clear();
@@ -337,14 +385,36 @@ void atm::Atmospheric::ResetCounters()
   fPIDAwithFlipMaybe.clear();
   fPIDANoFlip.clear();
   fPrimaryRecoVertex.clear();
-  
 
-  //fDaughterTrackdEdx_Plane0.clear();
-  //fDaughterTrackdEdx_Plane1.clear();
-  //fDaughterTrackdEdx_Plane2.clear();
-  //fDaughterTrackResidualRange_Plane0.clear();
-  //fDaughterTrackResidualRange_Plane1.clear();
-  //fDaughterTrackResidualRange_Plane2.clear();  
+//MVA bits
+
+  fRecoTrackMVAEvalRatio.clear();
+  fRecoTrackMVAConcentration.clear();
+  fRecoTrackMVACoreHaloRatio.clear();
+  fRecoTrackMVAConicalness.clear();
+  fRecoTrackMVAdEdxStart.clear();
+  fRecoTrackMVAdEdxEnd.clear();
+  fRecoTrackMVAdEdxEndRatio.clear();
+  fRecoTrackMVAElectron.clear();
+  fRecoTrackMVAPion.clear();
+  fRecoTrackMVAMuon.clear();
+  fRecoTrackMVAProton.clear();
+  fRecoTrackMVAPhoton.clear();
+  
+  fRecoTrackTruePDG.clear();
+  fRecoTrackTruePrimary.clear();
+  fRecoTrackTrueMomX.clear();
+  fRecoTrackTrueMomY.clear();
+  fRecoTrackTrueMomZ.clear();
+  fRecoTrackTrueMomT.clear();
+  fRecoTrackTrueStartX.clear();
+  fRecoTrackTrueStartY.clear();
+  fRecoTrackTrueStartZ.clear();
+  fRecoTrackTrueStartT.clear();
+  fRecoTrackTrueEndX.clear();
+  fRecoTrackTrueEndY.clear();
+  fRecoTrackTrueEndZ.clear();
+  fRecoTrackTrueEndT.clear();
 
   fminChi2PDG.clear();
   fminChi2value.clear();
@@ -390,21 +460,18 @@ void atm::Atmospheric::ResetCounters()
 void atm::Atmospheric::analyze(art::Event const &evt)
 {
   // pid::Chi2PIDAlg fChiAlg;
-  //std::cout << "Test 1 " << std::endl;
   ResetCounters();
-  //std::cout << "Test 2 " << std::endl;
+
   TVector3 TotalMomentumRecoRange;
   TVector3 TotalMomentumRecoCal;
+  TVector3 TrueEventDirection;
   TLorentzVector TotalMomentumTrue;
   // Get Geometry
   art::ServiceHandle<geo::Geometry const> geom;
   GeoLimits(geom, 10, 10, 10);
 
-  //we need the particle inventory service
-  art::ServiceHandle<cheat::ParticleInventoryService> pi_serv;
-
   // and the clock data for event
-  // auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService const>()->DataFor(evt);
+   auto const clockdata = art::ServiceHandle<detinfo::DetectorClocksService const>()->DataFor(evt);
   // channel quality
   // lariov::ChannelStatusProvider const& channelStatus = art::ServiceHandle<lariov::ChannelStatusService const>()->GetProvider();
 
@@ -425,6 +492,9 @@ void atm::Atmospheric::analyze(art::Event const &evt)
   {
       fCVN_NCProbability = (*cvnResult)[0].GetNCProbability();
   }
+
+  std::unique_ptr<dune::EnergyRecoOutput> energyRecoHandle(std::make_unique<dune::EnergyRecoOutput>(fNeutrinoEnergyRecoAlg.CalculateNeutrinoEnergy(evt)));
+  fEventRecoEnergy = energyRecoHandle->fNuLorentzVector.E();
 
 
   std::map<int,float> PDGtoMass;
@@ -450,6 +520,7 @@ void atm::Atmospheric::analyze(art::Event const &evt)
     const simb::MCParticle &nu = MCNeutrino.Nu();
     fMCPrimaryNuPDG.push_back(nu.PdgCode());
     std::vector<double> tmp_NuMomentum = {nu.Momentum().X(), nu.Momentum().Y(), nu.Momentum().Z()};
+    TrueEventDirection = nu.Momentum().Vect().Unit();
     fMCNuMomentum.push_back(tmp_NuMomentum);
     std::vector<double> tmp_fMCInitialPositionNu = {nu.Vx(), nu.Vy(), nu.Vz()};
     fMCInitialPositionNu.push_back(tmp_fMCInitialPositionNu);
@@ -528,7 +599,6 @@ void atm::Atmospheric::analyze(art::Event const &evt)
   if(evt.getByLabel(fHitModuleLabel,hitHandle)) art::fill_ptr_vector(HitVect, hitHandle);
 
 
-
   if (!pfParticleHandle.isValid())
   {
     mf::LogDebug("Atmospheric") << "  Failed to find the PFParticles." << std::endl;
@@ -544,6 +614,10 @@ void atm::Atmospheric::analyze(art::Event const &evt)
   art::FindManyP<recob::SpacePoint> pfpToSpacePoint(pfParticleHandle, evt, fSpacePointModuleLabel);
   art::FindManyP<recob::Vertex> pfPartToVertex(pfParticleHandle, evt,fPFParticleModuleLabel);
   art::FindManyP<recob::Hit> ShowerToHitAssoc(showerHandle, evt, fShowerModuleLabel);
+  art::FindManyP<recob::SpacePoint> ShowerToSpacePoint(showerHandle, evt, fShowerModuleLabel);
+ // std::cout << "I'm in the association part, dad! " << std::endl;
+   art::FindManyP<anab::MVAPIDResult> fmpidt(trackHandle, evt, fMVAPIDModuleLabel);
+   art::FindManyP<anab::MVAPIDResult> fmpids(showerHandle, evt, fMVAPIDModuleLabel);
   //art::FindManyP<recob::Hit> TrackToHitsAssoc(trackHandle, evt, fHitModuleLabel);
 
 
@@ -625,8 +699,55 @@ void atm::Atmospheric::analyze(art::Event const &evt)
           if(!insideFV(trk->End())) continue;
          // int trkidtruth = TruthMatchUtils::TrueParticleIDFromTotalTrueEnergy(clockData, trackHits, true);
          // const simb::MCParticle *particle = pi_serv->TrackIdToParticle_P(trkidtruth);
+         int g4id = TruthMatchUtils::TrueParticleIDFromTotalRecoHits(clockdata, trackHits, 1);
+        if (TruthMatchUtils::Valid(g4id)){
+          std::cout << "TruthMatchUtils::Valid" << std::endl;
+        art::ServiceHandle<cheat::ParticleInventoryService> pi_serv;
+        const simb::MCParticle* matched_mcparticle = pi_serv->ParticleList().at(g4id);
+          if (matched_mcparticle){
+            //Fill variables
+            std::cout << "Fill variables" << std::endl;
+            fRecoTrackTruePDG.push_back(matched_mcparticle->PdgCode());
+            if (matched_mcparticle->Mother()==0) fRecoTrackTruePrimary.push_back(true);
+            else fRecoTrackTruePrimary.push_back(false);
+            fRecoTrackTrueMomX.push_back(matched_mcparticle->Momentum().X());
+            fRecoTrackTrueMomY.push_back(matched_mcparticle->Momentum().Y());
+            fRecoTrackTrueMomZ.push_back(matched_mcparticle->Momentum().Z());
+            fRecoTrackTrueMomT.push_back(matched_mcparticle->Momentum().T());
+            fRecoTrackTrueStartX.push_back(matched_mcparticle->Position(0).X());
+            fRecoTrackTrueStartY.push_back(matched_mcparticle->Position(0).Y());
+            fRecoTrackTrueStartZ.push_back(matched_mcparticle->Position(0).Z());
+            fRecoTrackTrueStartT.push_back(matched_mcparticle->Position(0).T());
+            fRecoTrackTrueEndX.push_back(matched_mcparticle->EndPosition().X());
+            fRecoTrackTrueEndY.push_back(matched_mcparticle->EndPosition().Y());
+            fRecoTrackTrueEndZ.push_back(matched_mcparticle->EndPosition().Z());
+            fRecoTrackTrueEndT.push_back(matched_mcparticle->EndPosition().T());
+          }
+        }
 
           fDaughterTrackID.push_back(trk.key());
+        
+         // std::cout << "I'm accessing the MMVAPID, dad! " << std::endl;
+          std::vector<art::Ptr<anab::MVAPIDResult> > pids = fmpidt.at(trk.key());
+         // std::cout << "Track and MVAPID ok, dad! " << std::endl;
+          if (pids.at(0).isAvailable()){
+              fRecoTrackMVAEvalRatio.push_back(pids.at(0)->evalRatio);
+              fRecoTrackMVAConcentration.push_back(pids.at(0)->concentration);
+              fRecoTrackMVACoreHaloRatio.push_back(pids.at(0)->coreHaloRatio);
+              fRecoTrackMVAConicalness.push_back(pids.at(0)->conicalness);
+              fRecoTrackMVAdEdxStart.push_back(pids.at(0)->dEdxStart);
+              fRecoTrackMVAdEdxEnd.push_back(pids.at(0)->dEdxEnd);
+              fRecoTrackMVAdEdxEndRatio.push_back(pids.at(0)->dEdxEndRatio);
+              std::map<std::string,double> mvaOutMap = pids.at(0)->mvaOutput;
+              if (!(mvaOutMap.empty())){
+                  //Get the PIDs
+                  fRecoTrackMVAElectron.push_back(mvaOutMap["electron"]);
+                  fRecoTrackMVAPion.push_back(mvaOutMap["pich"]);
+                  fRecoTrackMVAMuon.push_back(mvaOutMap["muon"]);
+                  fRecoTrackMVAProton.push_back(mvaOutMap["proton"]);
+                  fRecoTrackMVAPhoton.push_back(mvaOutMap["photon"]);
+              }
+          }
 
          // fDaughterTrackTruePDG.push_back(particle->PdgCode());
           float trackADC = 0;
@@ -636,13 +757,16 @@ void atm::Atmospheric::analyze(art::Event const &evt)
             trackADC += hit->SummedADC();
           }
           if(trackADC > fHighestTrackSummedADC) HighestTrackSummedADC = trackADC;
-          
+
+          TVector3 TrackDirectionLongestTrack(trk->StartDirection().X(), trk->StartDirection().Y(), trk->StartDirection().Z());
+
           AllLengthTracksSummed += trk->Length();
           if(trk->Length() > LongestTrack){
               LongestTrack = trk->Length();
               LongestTrackID = trk.key();
+              fDiffCosAngleLongestTrack = TrackDirectionLongestTrack*TrueEventDirection;
           } 
-          
+
           std::vector<art::Ptr<anab::ParticleID>> trackPID = TrackToPIDAssoc.at(trk.key());
           std::map<int,float> PDGtoChi2;
 
@@ -657,6 +781,7 @@ void atm::Atmospheric::analyze(art::Event const &evt)
             for (size_t i_algscore = 0; i_algscore < AlgScoresVec.size(); i_algscore++)
             {
               anab::sParticleIDAlgScores AlgScore = AlgScoresVec.at(i_algscore);
+              //std::cout << "AlgScore.fAlgName = " << AlgScore.fAlgName << std::endl;
               // if (AlgScore.fPlaneMask[2] != 1)  continue; //Only collection plane
               if(AlgScore.fAlgName == "Chi2") {
                 //Sum Chi2 hyphotesis all planes 
@@ -695,33 +820,9 @@ void atm::Atmospheric::analyze(art::Event const &evt)
             int planenum = cal->PlaneID().Plane;
             // std::cout << "pid: " << pidout.ParticleIDAlgScores.at(0) << std::endl;
             std::vector<float> temp_dEdx = cal->dEdx();
-           // std::cout<< "temp_dEdx.size() = "<< temp_dEdx.size() << std::endl;
-            //if (InvertTrack)
-            //{
-            //  //std::cout << "temp_dEdx.at(0)= " << temp_dEdx.at(0) << std::endl;
-            //  std::reverse(temp_dEdx.begin(), temp_dEdx.end());
-            //  //std::cout << "temp_dEdx.at(final)= " << temp_dEdx.at(temp_dEdx.size() - 1) << std::endl;
-            //}
-
-            //if (planenum == 0)
-            //{
-            //  fDaughterTrackdEdx_Plane0.push_back(temp_dEdx);
-            //  fDaughterTrackResidualRange_Plane0.push_back(cal->ResidualRange());
-            //  fDaughterKE_Plane0.push_back(cal->KineticEnergy());
-            //}
-//
-            //if (planenum == 1)
-            //{
-            //  fDaughterTrackdEdx_Plane1.push_back(temp_dEdx);
-            //  fDaughterTrackResidualRange_Plane1.push_back(cal->ResidualRange());
-            //  fDaughterKE_Plane1.push_back(cal->KineticEnergy());
-            //}
 
             if (planenum == 2)
             {
-              //fDaughterTrackdEdx_Plane2.push_back(temp_dEdx);
-              //fDaughterTrackResidualRange_Plane2.push_back(cal->ResidualRange());
-              //fDaughterKE_Plane2.push_back(cal->KineticEnergy());
               KE = cal->KineticEnergy();
             }
 
@@ -781,11 +882,17 @@ void atm::Atmospheric::analyze(art::Event const &evt)
         // SHOWERS RECO INFO ====================================================================
         const std::vector<art::Ptr<recob::Shower>> &associatedShowers = pfPartToShowerAssoc.at(iPfp);
         fnShowers += associatedShowers.size();
+       // std::cout << "associatedShowers.size() = " << associatedShowers.size() << std::endl;
 
         if (!associatedShowers.empty())
         {
           for (const art::Ptr<recob::Shower> &Shower : associatedShowers)
           {
+            
+            std::vector<art::Ptr<recob::SpacePoint>> showersp = ShowerToSpacePoint.at(Shower.key());
+           //std::cout << "showersp.size() = " << showersp.size() << std::endl;
+           if (showersp.size()==0) continue;
+
             fShowerID.push_back(Shower->ID());
             fShowerDirectionX.push_back(Shower->Direction().X());
             fShowerDirectionY.push_back(Shower->Direction().Y());
@@ -797,7 +904,8 @@ void atm::Atmospheric::analyze(art::Event const &evt)
             fShowerEnergy.push_back(Shower->Energy());
             fShowerLength.push_back(Shower->Length());
             fShowerOpenAngle.push_back(Shower->OpenAngle()); 
-            
+
+                     
             std::vector<art::Ptr<recob::Hit>> ShowerHits = ShowerToHitAssoc.at(Shower.key());
             
             if (Shower->Length() > fLongestShower) fLongestShower = Shower->Length();
@@ -835,6 +943,9 @@ void atm::Atmospheric::analyze(art::Event const &evt)
     fTotalMomRecoRangeUnitVect = {TotalMomentumRecoRange.Unit().X(), TotalMomentumRecoRange.Unit().Y(), TotalMomentumRecoRange.Unit().Z()};
     //std::cout << "fTotalMomRecoRangeUnitVect =" << fTotalMomRecoRangeUnitVect <<std::endl;
     fTotalMomRecoCalVectUnit = {TotalMomentumRecoCal.Unit().X(), TotalMomentumRecoCal.Unit().Y(), TotalMomentumRecoCal.Unit().Z()}; 
+  
+    fDiffCosAngleTotalMom = TotalMomentumRecoRange.Unit()*TrueEventDirection;
+
     //std::cout << "fTotalMomRecoCalVectUnit =" << fTotalMomRecoCalVectUnit <<std::endl;
     }
   
@@ -914,31 +1025,6 @@ double atm::Atmospheric::CalcPIDA(  std::vector<art::Ptr<anab::Calorimetry>> cal
       // Increment TotHits and dEdx sum
       dEdxSum += ThisdEdx;
       ++TotHits;
-      // Fill the calorimetry objects
-      if (Plane==0 && CaloPlane0<kMaxHits) {
-	dEdxPlane0[CaloPlane0] = ThisdEdx;
-	ResRPlane0[CaloPlane0] = ThisResR;
-	++CaloPlane0;
-      } else if (Plane==1 && CaloPlane1<kMaxHits) {
-	dEdxPlane1[CaloPlane1] = ThisdEdx;
-	ResRPlane1[CaloPlane1] = ThisResR;
-	++CaloPlane1;
-      } else if (Plane==2 && CaloPlane2<kMaxHits) {
-	dEdxPlane2[CaloPlane2] = ThisdEdx;
-	ResRPlane2[CaloPlane2] = ThisResR;
-	++CaloPlane2;
-      }
-      // Output some calorimetry information
-      /*
-      double ThisRang = calos[Plane]->Range();
-      double ThisKinE = calos[Plane]->KineticEnergy();
-      TVector3 ThisPos = calos[Plane]->XYZ()[PlaneHit];
-      std::cout << "Looking at hit " << PlaneHit << " of " << (int)calos[Plane]->dEdx().size() << "...dEdx is " << ThisdEdx << ", ResR is " 
-		<< ThisResR << ", this Range is " << ThisRang << ", TrackLength is " << TrackLength << ", KinE is " << ThisKinE 
-		<< ". This is pos is (" << ThisPos[0] << ", " << ThisPos[1] << ", " << ThisPos[2] << ")." 
-		<< std::endl;
-      //*/
-      
       // ==== If MCCorOrient == true
       // Work out PIDA if ResRange < 30 cm
       if ( ThisResR < 30 ) { // Only want PIDA for last 30 cm
@@ -952,13 +1038,11 @@ double atm::Atmospheric::CalcPIDA(  std::vector<art::Ptr<anab::Calorimetry>> cal
     UsedHits += PlaneHits;
     // Work out PIDA for this plane
     PlanePIDA = PlanePIDA/PlaneHits;
-    // if (Plane == 0 ) PIDA_Plane0 = PlanePIDA;
-    // else if (Plane == 1 ) PIDA_Plane1 = PlanePIDA;
-    // else if (Plane == 2 ) PIDA_Plane2 = PlanePIDA;
   } // Loop over planes
   
   if ( UsedHits ) // If had any hits, work out PIDA and calculate
     PIDA = PIDA / UsedHits;
+  if (PIDA > 60) PIDA = 60;
   // AvdEdx = dEdxSum / TotHits;
   return PIDA;
 } // CalcPIDA
@@ -972,31 +1056,6 @@ void atm::Atmospheric::beginJob()
 {
 
   std::cout << " atm::Atmospheric::beginJob() - initializing..." << std::endl;
-
-/*
-
-  SunPositions.open("background_sun_pos.dat");
-  int nPosSun = 100000;
-  int nline_SunPos = rand() % nPosSun;
-  int nline = 1;
-  double x = 0, y = 0, z = 0;
-
-  while (1)
-  {
-     if (SunPositions.eof())
-        break;
-     SunPositions >> x >> y >> z;
-     // if (SunFile.fail())
-     // throw std::runtime_error("Can't read x, y or z at line " + std::to_string(iLine));
-     //std::cout << "x: " << x << " y: " << y << " z: " << z << std::endl;
-     if(nline==nline_SunPos){
-      // std::cout << "nline==nline_SunPos\n";
-       RandomSunPosition.SetXYZ(x, y, z);
-      // std::cout << "RandomSunPosition.Mag() = " << RandomSunPosition.Mag() << std::endl;
-     //  std::cout << "x,y,z = " <<x << "\t" << y <<"\t" << z << std::endl;
-     }
-     nline++;
-  }*/
 
   art::ServiceHandle<art::TFileService const> tfs;
   m_AtmTree = tfs->make<TTree>("Atm", "AtmosphericAnalysis");
@@ -1023,16 +1082,9 @@ void atm::Atmospheric::beginJob()
   m_AtmTree->Branch("TrackEndY", &fTrackEndY);
   m_AtmTree->Branch("TrackEndZ", &fTrackEndZ);
 
+  m_AtmTree->Branch("fEventRecoEnergy", &fEventRecoEnergy);
+
   m_AtmTree->Branch("PrimaryRecoVertex", &fPrimaryRecoVertex);
-  //m_AtmTree->Branch("DaughterTrackdEdx_Plane0", &fDaughterTrackdEdx_Plane0);
-  //m_AtmTree->Branch("DaughterTrackResidualRange_Plane0", &fDaughterTrackResidualRange_Plane0);
-  //m_AtmTree->Branch("DaughterKE_Plane0", &fDaughterKE_Plane0);
-  //m_AtmTree->Branch("DaughterTrackdEdx_Plane1", &fDaughterTrackdEdx_Plane1);
-  //m_AtmTree->Branch("DaughterTrackResidualRange_Plane1", &fDaughterTrackResidualRange_Plane1);
-  //m_AtmTree->Branch("DaughterKE_Plane1", &fDaughterKE_Plane1);
-  //m_AtmTree->Branch("DaughterTrackdEdx_Plane2", &fDaughterTrackdEdx_Plane2);
-  //m_AtmTree->Branch("DaughterTrackResidualRange_Plane2", &fDaughterTrackResidualRange_Plane2);
-  //m_AtmTree->Branch("DaughterKE_Plane2", &fDaughterKE_Plane2);
   m_AtmTree->Branch("PIDA_NoFlip", &fPIDANoFlip);
   m_AtmTree->Branch("PIDAwithFlipMaybe", &fPIDAwithFlipMaybe);
   m_AtmTree->Branch("HighestTrackSummedADC", &fHighestTrackSummedADC);
@@ -1044,6 +1096,8 @@ void atm::Atmospheric::beginJob()
   m_AtmTree->Branch("LargeShowerOpenAngle", &fLargeShowerOpenAngle);
   m_AtmTree->Branch("LongestShower", &fLongestShower);
 
+  m_AtmTree->Branch("DiffCosAngleTotalMom", &fDiffCosAngleTotalMom);
+  m_AtmTree->Branch("DiffCosAngleLongestTrack", &fDiffCosAngleLongestTrack);
   m_AtmTree->Branch("FracTotalChargeLongTrack", &fFracTotalChargeLongTrack);
   m_AtmTree->Branch("AvarageTrackLength", &fAvarageTrackLength);
 
@@ -1071,9 +1125,37 @@ void atm::Atmospheric::beginJob()
   m_AtmTree->Branch("minChi2PDG", &fminChi2PDG);
   m_AtmTree->Branch("DistVertex", &fDistVertex);
 
+  m_AtmTree->Branch("RecoTrackTruePDG", &fRecoTrackTruePDG);
+  m_AtmTree->Branch("RecoTrackTruePrimary", &fRecoTrackTruePrimary);
+  m_AtmTree->Branch("RecoTrackTrueMomX", &fRecoTrackTrueMomX);
+  m_AtmTree->Branch("RecoTrackTrueMomY", &fRecoTrackTrueMomY);
+  m_AtmTree->Branch("RecoTrackTrueMomZ", &fRecoTrackTrueMomZ);
+  m_AtmTree->Branch("RecoTrackTrueMomT", &fRecoTrackTrueMomT);
+  m_AtmTree->Branch("RecoTrackTrueStartX", &fRecoTrackTrueStartX);
+  m_AtmTree->Branch("RecoTrackTrueStartY", &fRecoTrackTrueStartY);
+  m_AtmTree->Branch("RecoTrackTrueStartZ", &fRecoTrackTrueStartZ);
+  m_AtmTree->Branch("RecoTrackTrueStartT", &fRecoTrackTrueStartT);
+  m_AtmTree->Branch("RecoTrackTrueEndX", &fRecoTrackTrueEndX);
+  m_AtmTree->Branch("RecoTrackTrueEndY", &fRecoTrackTrueEndY);
+  m_AtmTree->Branch("RecoTrackTrueEndZ", &fRecoTrackTrueEndZ);
+  m_AtmTree->Branch("RecoTrackTrueEndT", &fRecoTrackTrueEndT);
+
+  m_AtmTree->Branch("RecoTrackMVAEvalRatio", &fRecoTrackMVAEvalRatio);
+  m_AtmTree->Branch("RecoTrackMVAConcentration", &fRecoTrackMVAConcentration);
+  m_AtmTree->Branch("RecoTrackMVACoreHaloRatio", &fRecoTrackMVACoreHaloRatio);
+  m_AtmTree->Branch("RecoTrackMVAConicalness", &fRecoTrackMVAConicalness);
+  m_AtmTree->Branch("RecoTrackMVAdEdxStart", &fRecoTrackMVAdEdxStart);
+  m_AtmTree->Branch("RecoTrackMVAdEdxEnd", &fRecoTrackMVAdEdxEnd);
+  m_AtmTree->Branch("RecoTrackMVAdEdxEndRatio", &fRecoTrackMVAdEdxEndRatio);
+  m_AtmTree->Branch("RecoTrackMVAElectron", &fRecoTrackMVAElectron);
+  m_AtmTree->Branch("RecoTrackMVAPion", &fRecoTrackMVAPion);
+  m_AtmTree->Branch("RecoTrackMVAMuon", &fRecoTrackMVAMuon);
+  m_AtmTree->Branch("RecoTrackMVAProton", &fRecoTrackMVAProton);
+  m_AtmTree->Branch("RecoTrackMVAPhoton", &fRecoTrackMVAPhoton);
+
+
  // m_AtmTree->Branch("SunDirectionFromTrueBDM", &fSunDirectionFromTrueBDM);
  // m_AtmTree->Branch("TruePrimaryBDMVertex", &fPrimaryBDMVertex);
-  m_AtmTree->Branch("CCNC", &fCCNC);
   m_AtmTree->Branch("ThetaNuLepton", &fThetaNuLepton);
   m_AtmTree->Branch("MCPrimaryNuPDG", &fMCPrimaryNuPDG);
   m_AtmTree->Branch("MCNuMomentum", &fMCNuMomentum);

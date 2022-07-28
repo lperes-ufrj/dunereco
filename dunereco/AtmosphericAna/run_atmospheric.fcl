@@ -1,6 +1,11 @@
 #include "Atmospheric_config.fcl"
 
 
+#include "trackfindermodules.fcl"
+#include "mvamodule.fcl"
+#include "energyreco.fcl"
+
+
 process_name: atmospheric
 
 source:{
@@ -17,16 +22,44 @@ services:
     BackTrackerService: @local::standard_backtrackerservice
     FileCatalogMetadata:  @local::art_file_catalog_mc
     @table::dunefd_services
+    @table::dunefd_simulation_services
     IFDH: {}
     Geometry: @local::dune10kt_1x2x6_geo        
 }
 
 physics:
 {
-    analyzers:
+producers:
+    {
+#energyreconue:  @local::dunefd_nuenergyreco_pandora_numu
+#energyreconumu: @local::dunefd_nuenergyreco_pandora_nue
+   pid: {
+        module_type:		"MVAPID"
+    HitLabel:		"linecluster"
+    TrackLabel:		"pandoraTrack"
+#ShowerLabel:		"pandoraShower"
+    ShowerLabel:  "pandoraShower"
+    SpacePointLabel:	"pandora"
+                  CalorimetryAlg:          @local::dune10kt_calorimetryalgmc
+    MVAMethods:		[ "electron","muon","photon","pich","proton" ]
+    WeightFiles:		[ "mvapid_weights/electron_all_BDT.weights.xml",
+         "mvapid_weights/muon_all_BDT.weights.xml",
+                "mvapid_weights/photon_all_BDT.weights.xml",
+         "mvapid_weights/pich_all_BDT.weights.xml",
+         "mvapid_weights/proton_all_BDT.weights.xml" ]
+    }
+
+
+    }
+
+analyzers:
     {
         ana: @local::atmospheric
     }
+    #stream1:  [ out1 ]
+    prod: [pid]
+    #caf:  [ cafmaker]
+   trigger_paths: [prod] 
     path0:      [ana]
     end_paths:  [path0]   
 }
