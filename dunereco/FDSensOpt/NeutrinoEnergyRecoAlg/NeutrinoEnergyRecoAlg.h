@@ -20,7 +20,7 @@
 #include "larreco/Calorimetry/CalorimetryAlg.h"
 //DUNE
 #include "dunereco/FDSensOpt/FDSensOptData/EnergyRecoOutput.h"
-
+//#include "dunereco/AtmosphericAna/Atmospheric.h"
 namespace dune
 {
 /**
@@ -293,6 +293,7 @@ class NeutrinoEnergyRecoAlg
         std::string fTrackToHitLabel;                            ///< the associated track-to-hit label
         std::string fShowerToHitLabel;                           ///< the associated shower-to-hit label
         std::string fHitToSpacePointLabel;                       ///< the associated hit-to-space point label
+       //friend class atm::Atmospheric : public art::EDAnalyzer;
 };
 } //namespace dune_ana
 #endif //DUNE_NEUTRINO_ENERGY_RECO_ALG_H
