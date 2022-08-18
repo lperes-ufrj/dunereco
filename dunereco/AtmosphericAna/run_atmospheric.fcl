@@ -1,6 +1,4 @@
 #include "Atmospheric_config.fcl"
-
-
 #include "trackfindermodules.fcl"
 #include "mvamodule.fcl"
 #include "energyreco.fcl"
@@ -48,18 +46,18 @@ producers:
          "mvapid_weights/pich_all_BDT.weights.xml",
          "mvapid_weights/proton_all_BDT.weights.xml" ]
     }
-
+     
 
     }
 
 analyzers:
     {
         ana: @local::atmospheric
+ 
     }
-    #stream1:  [ out1 ]
+
     prod: [pid]
-    #caf:  [ cafmaker]
-   trigger_paths: [prod] 
+    trigger_paths: [prod] 
     path0:      [ana]
     end_paths:  [path0]   
 }

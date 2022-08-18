@@ -231,7 +231,7 @@ private:
   double fHighestShowerSummedADC;
   double fLargeShowerOpenAngle;
   double fLongestShower;
-  float fCVN_NCProbability;
+  float fCVN_NCScore;
   double fFracTotalChargeLongTrack;
   double fAvarageTrackLength;
   float fEventRecoEnergy;
@@ -358,7 +358,7 @@ void atm::Atmospheric::ResetCounters()
   fHighestShowerSummedADC = 0;
   fLargeShowerOpenAngle = 0;
   fLongestShower = 0;
-  fCVN_NCProbability = -1;
+  fCVN_NCScore = -1;
   fFracTotalChargeLongTrack = 0;
   fAvarageTrackLength = 0;
   fEventRecoEnergy = -1;
@@ -472,6 +472,10 @@ void atm::Atmospheric::analyze(art::Event const &evt)
 
   // and the clock data for event
    auto const clockdata = art::ServiceHandle<detinfo::DetectorClocksService const>()->DataFor(evt);
+
+  //Detector properties
+  auto const detProp = art::ServiceHandle<detinfo::DetectorPropertiesService const>()->DataFor(evt, clockdata);
+
   // channel quality
   // lariov::ChannelStatusProvider const& channelStatus = art::ServiceHandle<lariov::ChannelStatusService const>()->GetProvider();
 
@@ -490,7 +494,7 @@ void atm::Atmospheric::analyze(art::Event const &evt)
 
   if(!cvnResult->empty()) 
   {
-      fCVN_NCProbability = (*cvnResult)[0].GetNCProbability();
+      fCVN_NCScore = (*cvnResult)[0].GetNCProbability();
   }
 
   std::unique_ptr<dune::EnergyRecoOutput> energyRecoHandle(std::make_unique<dune::EnergyRecoOutput>(fNeutrinoEnergyRecoAlg.CalculateNeutrinoEnergy(evt)));
@@ -888,6 +892,17 @@ void atm::Atmospheric::analyze(art::Event const &evt)
         {
           for (const art::Ptr<recob::Shower> &Shower : associatedShowers)
           {
+          
+          //const std::vector<art::Ptr<recob::Hit> > electronHits(dune_ana::DUNEAnaHitUtils::GetHitsOnPlane(dune_ana::DUNEAnaShowerUtils::GetHits(Shower, evt, fShowerModuleLabel),2));
+          //const double electronObservedCharge(dune_ana::DUNEAnaHitUtils::LifetimeCorrectedTotalHitCharge(clockData, detProp, electronHits));
+          //const double uncorrectedElectronEnergy(this->CalculateEnergyFromCharge(electronObservedCharge));
+//
+          //std::unique_ptr<dune::EnergyRecoOutput> energyRecoHandle_shower(std::make_unique<dune::EnergyRecoOutput>(fNeutrinoEnergyRecoAlg.CalculateNeutrinoEnergy(Shower,evt)));
+          //fEventRecoEnergy = energyRecoHandle->fNuLorentzVector.E();
+          //energyRecoOutput = std::make_unique<dune::EnergyRecoOutput>(fNeutrinoEnergyRecoAlg.CalculateNeutrinoEnergy(longestTrack, evt));
+          // else if (fRecoMethod == 2)
+          // energyRecoOutput = std::make_unique<dune::EnergyRecoOutput>(fNeutrinoEnergyRecoAlg.CalculateNeutrinoEnergy(highestChargeShower, evt));
+
             
             std::vector<art::Ptr<recob::SpacePoint>> showersp = ShowerToSpacePoint.at(Shower.key());
            //std::cout << "showersp.size() = " << showersp.size() << std::endl;
@@ -1072,7 +1087,7 @@ void atm::Atmospheric::beginJob()
   m_AtmTree->Branch("NPrimaryDaughters", &fNPrimaryDaughters);
   m_AtmTree->Branch("NPrimaries", &fNPrimaries);
   m_AtmTree->Branch("DaughterTrackID", &fDaughterTrackID);
-  m_AtmTree->Branch("CVN_NCProbability", &fCVN_NCProbability);
+  m_AtmTree->Branch("CVN_NCScore", &fCVN_NCScore);
   
 
   m_AtmTree->Branch("TrackStartX", &fTrackStartX);

@@ -2648,6 +2648,7 @@ art::Ptr<recob::Track> FDSelection::CCNuSelection::GetTrackMatchedPFParticle(art
 
 
 void FDSelection::CCNuSelection::GetRecoShowerInfo(art::Event const & evt){
+  std::cout << "GetRecoShowerInfo #1" << std::endl;
   art::Handle< std::vector<recob::Shower> > showerListHandle;
   std::vector<art::Ptr<recob::Shower> > showerList;
   if (!(evt.getByLabel(fShowerModuleLabel, showerListHandle))){
@@ -2655,7 +2656,7 @@ void FDSelection::CCNuSelection::GetRecoShowerInfo(art::Event const & evt){
     return;
   }
   else art::fill_ptr_vector(showerList, showerListHandle);
-
+  std::cout << "GetRecoShowerInfo #2" << std::endl;
   art::Handle< std::vector<recob::PFParticle> > pfparticleListHandle;
   std::vector<art::Ptr<recob::PFParticle > > pfparticleList;
   if (!(evt.getByLabel(fPFParticleModuleLabel, pfparticleListHandle))){
@@ -2663,7 +2664,7 @@ void FDSelection::CCNuSelection::GetRecoShowerInfo(art::Event const & evt){
     return;
   }
   else art::fill_ptr_vector(pfparticleList, pfparticleListHandle);
-
+std::cout << "GetRecoShowerInfo #3" << std::endl;
   //const std::vector<art::Ptr<recob::Hit> > sel_shower_hits = fmhs.at(sel_shower.key());
   //fSelShowerRecoNHits = sel_shower_hits.size();
 
@@ -2673,7 +2674,7 @@ void FDSelection::CCNuSelection::GetRecoShowerInfo(art::Event const & evt){
   if (evt.getByLabel(fHitsModuleLabel,hitListHandle)){
     art::fill_ptr_vector(hitList, hitListHandle);
   }
-
+  std::cout << "GetRecoShowerInfo #4" << std::endl;
   art::FindManyP<recob::Hit> fmhs(showerListHandle, evt, fShowerModuleLabel);
   art::FindManyP<larpandoraobj::PFParticleMetadata> metadataAssn(pfparticleListHandle, evt, "pandora");
 
@@ -2685,9 +2686,9 @@ void FDSelection::CCNuSelection::GetRecoShowerInfo(art::Event const & evt){
   for (unsigned int i_shower = 0; i_shower < loopLimit; i_shower++){
     art::Ptr<recob::Shower> current_shower = showerList[i_shower];
     const std::vector<art::Ptr<recob::Hit> > current_shower_hits = fmhs.at(current_shower.key());
-
+    if(current_shower_hits.size()==0) continue;
     fRecoShowerRecoNHits[i_shower] = current_shower_hits.size();
-
+    std::cout << "GetRecoShowerInfo #5" << std::endl;
     art::Ptr<recob::PFParticle> current_shower_pfp = GetPFParticleMatchedToShower(current_shower, evt);
 
     std::vector<art::Ptr<larpandoraobj::PFParticleMetadata>> pfpMetadata = metadataAssn.at(current_shower_pfp.key());
@@ -2722,7 +2723,7 @@ void FDSelection::CCNuSelection::GetRecoShowerInfo(art::Event const & evt){
     //fNueRecoENu = energyRecoHandle->fNuLorentzVector.E();
     //fNueRecoEHad = energyRecoHandle->fHadLorentzVector.E();
     //fNueRecoMomLep = sqrt(energyRecoHandle->fLepLorentzVector.Vect().Mag2());
-
+    std::cout << "GetRecoShowerInfo #6" << std::endl;
     FillChildPFPInformation(current_shower, evt, fRecoShowerRecoNChildPFP[i_shower], fRecoShowerRecoNChildTrackPFP[i_shower], fRecoShowerRecoNChildShowerPFP[i_shower]);
 
     int g4id = TruthMatchUtils::TrueParticleIDFromTotalRecoHits(clockData, current_shower_hits, 1);
@@ -2775,6 +2776,7 @@ void FDSelection::CCNuSelection::GetRecoShowerInfo(art::Event const & evt){
         }
     }
 
+    std::cout << "GetRecoShowerInfo #7" << std::endl;
     if (current_shower->dEdx().size() > 0)
     {
         for (int i_plane = 0; i_plane < 3; i_plane++){
@@ -2856,6 +2858,7 @@ void FDSelection::CCNuSelection::RunShowerSelection(art::Event const & evt)
 {
   art::Handle< std::vector<recob::Shower> > showerListHandle;
   std::vector <art::Ptr<recob::Shower>> showerList;
+  std::cout << "RunShowerSelection #1" << std::endl;
   if (!(evt.getByLabel(fShowerModuleLabel, showerListHandle)))
   {
     std::cout << "Unable to find std::vector<recob::Shower> with module label: " << fShowerModuleLabel << std::endl;
@@ -2865,7 +2868,7 @@ void FDSelection::CCNuSelection::RunShowerSelection(art::Event const & evt)
 
   // Get the selected shower
   art::Ptr<recob::Shower> sel_shower = fRecoShowerSelector->FindSelectedShower(evt);
-
+   std::cout << "RunShowerSelection #2" << std::endl;
   // If we didn't find a selected shower then what's the point?
   if (!(sel_shower.isAvailable())) 
   {
@@ -2886,7 +2889,7 @@ void FDSelection::CCNuSelection::RunShowerSelection(art::Event const & evt)
 
     cheat = true;
   }
-
+   std::cout << "RunShowerSelection #3" << std::endl;
   //std::cout << "CCNuSelection - Is selected shower cheated? " << (cheat ? "yes" : "no" ) << std::endl;
   //std::cout << "fCheatShowerModuleLabel: " << fCheatShowerModuleLabel << std::endl;
   //std::cout << "fCheatPIDModuleLabel: " << fCheatPIDModuleLabel << std::endl;
@@ -2910,7 +2913,7 @@ void FDSelection::CCNuSelection::RunShowerSelection(art::Event const & evt)
     std::cout << "CCNuSelection::GetPFParticleMatchedToShower NUMBER OF PFP MATCHED TO A SHOWER DOES NOT EQUAL 1: " << sel_shower_pfps.size() << std::endl;
     return;
   }
-
+   std::cout << "RunShowerSelection #4" << std::endl;
   art::Ptr<recob::PFParticle> sel_pfp = sel_shower_pfps[0];
 
   //Get the hits for said shower
@@ -2951,7 +2954,7 @@ void FDSelection::CCNuSelection::RunShowerSelection(art::Event const & evt)
   //std::cout<<"FDSelection::CCNuSelection::RunShowerSelection - Not able to find energy reconstruction container with name " << fNueEnergyRecoModuleLabel << std::endl;
   //return;
   //}
-
+   std::cout << "RunShowerSelection #5" << std::endl;
   // Luckily can do this in cheating characterisation since enery split into leading lepton and hadronic
   std::unique_ptr<dune::EnergyRecoOutput> energyRecoHandle(std::make_unique<dune::EnergyRecoOutput>(cheat ? fCheatNeutrinoEnergyRecoAlg.CalculateNeutrinoEnergy(sel_shower, evt) : 
       fNeutrinoEnergyRecoAlg.CalculateNeutrinoEnergy(sel_shower, evt)));
@@ -3009,7 +3012,7 @@ void FDSelection::CCNuSelection::RunShowerSelection(art::Event const & evt)
           fSelShowerMVAPhoton = mvaOutMap["photon"];
       }
   }
-
+   std::cout << "RunShowerSelection #6" << std::endl;
   //25/07/19 DBrailsford
   //Calculate shower energy
   if (sel_shower->dEdx().size() > 0)
@@ -3066,6 +3069,7 @@ void FDSelection::CCNuSelection::RunShowerSelection(art::Event const & evt)
   std::vector<art::Ptr<recob::Hit>> hitListU = dune_ana::DUNEAnaHitUtils::GetHitsOnPlane(sel_shower_hits, 0);
   std::vector<art::Ptr<recob::Hit>> hitListV = dune_ana::DUNEAnaHitUtils::GetHitsOnPlane(sel_shower_hits, 1);
   std::vector<art::Ptr<recob::Hit>> hitListW = dune_ana::DUNEAnaHitUtils::GetHitsOnPlane(sel_shower_hits, 2);
+   std::cout << "RunShowerSelection #7" << std::endl;
 
   // Fill vertex separation info
   fSelShowerDistanceToNuVertexU = DistanceToNuVertex(evt, hitListU, TVector3(fNuX, fNuY, fNuZ));

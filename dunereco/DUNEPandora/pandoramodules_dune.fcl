@@ -16,10 +16,10 @@ dune_pandora:
     ShouldRunStitching:                                             false
     ShouldRunCosmicHitRemoval:                                      false
     ShouldRunSlicing:                                               false
-    ShouldRunNeutrinoRecoOption:                                    false
+    ShouldRunNeutrinoRecoOption:                                    true
     ShouldRunCosmicRecoOption:                                      false
     ShouldPerformSliceId:                                           false
-    PrintOverallRecoStatus:                                         false
+    PrintOverallRecoStatus:                                         true
 }
 
 #----35t prototype----
@@ -30,11 +30,11 @@ dune35t_pandora.ShouldRunStitching:                                 true
 
 #----DUNE FD Horizontal drift----
 dunefd_pandora_neutrino:                                            @local::dune_pandora
-dunefd_pandora_neutrino.ConfigFile:                                 "PandoraSettings_Master_DUNEFD.xml"
+dunefd_pandora_neutrino.ConfigFile:                                 "PandoraSettings_Neutrino_Atmos_DUNEFD.xml"
 dunefd_pandora_neutrino.ShouldRunNeutrinoRecoOption:                true
 
 dunefd_pandora_cosmic:                                              @local::dune_pandora
-dunefd_pandora_cosmic.ConfigFile:                                   "PandoraSettings_Master_DUNEFD.xml"
+dunefd_pandora_cosmic.ConfigFile:                                   "PandoraSettings_Neutrino_Atmos_DUNEFD.xml"
 dunefd_pandora_cosmic.ShouldRunCosmicRecoOption:                    true
 
 #----DUNE FD Vertical drift----
