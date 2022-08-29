@@ -13,6 +13,10 @@
 
 #include "Atmospheric.h"
 
+//For a linearly correction of the charge deposited by an electron shower
+double correctionGradient = 0.985;
+double correctionIntercept = -0.02;
+double fRecombFactor = 0.63;
 
 constexpr int kDefInt = -9999;
 constexpr int kDefMaxNRecoTracks = 1000;
@@ -254,7 +258,8 @@ atm::Atmospheric::Atmospheric(fhicl::ParameterSet const &p)
       fShowerRecoSave(p.get<bool>("ShowerRecoSave")),
       fWireModuleLabel(p.get<std::string>("WireModuleLabel")),
       fNeutrinoEnergyRecoAlg(p.get<fhicl::ParameterSet>("NeutrinoEnergyRecoAlg"),fTrackModuleLabel,fShowerModuleLabel,
-        fHitModuleLabel,fWireModuleLabel,fTrackModuleLabel,fShowerModuleLabel,fPFParticleModuleLabel)
+        fHitModuleLabel,fWireModuleLabel,fTrackModuleLabel,fShowerModuleLabel,fPFParticleModuleLabel),
+      fCalorimetryAlg(p.get<fhicl::ParameterSet>("CalorimetryAlg"))
 {
   // Call appropriate consumes<>() for any products to be retrieved by this module.
 }
@@ -279,7 +284,8 @@ void atm::Atmospheric::ResetCounters()
   fFracTotalChargeLongTrack = 0;
   fAvarageTrackLength = 0;
   fEventRecoEnergy = -1;
-
+  
+  fIsNC_CVNPred = false;
 
   fDistVertex = -2;
   fDiffCosAngleTotalMom = -2;
@@ -305,18 +311,18 @@ void atm::Atmospheric::ResetCounters()
 
 //MVA bits
 
-  fRecoTrackMVAEvalRatio.clear();
-  fRecoTrackMVAConcentration.clear();
-  fRecoTrackMVACoreHaloRatio.clear();
-  fRecoTrackMVAConicalness.clear();
-  fRecoTrackMVAdEdxStart.clear();
-  fRecoTrackMVAdEdxEnd.clear();
-  fRecoTrackMVAdEdxEndRatio.clear();
-  fRecoTrackMVAElectron.clear();
-  fRecoTrackMVAPion.clear();
-  fRecoTrackMVAMuon.clear();
-  fRecoTrackMVAProton.clear();
-  fRecoTrackMVAPhoton.clear();
+  fRecoTrackMVAEvalRatio = 0;
+  fRecoTrackMVAConcentration = 0;
+  fRecoTrackMVACoreHaloRatio = 0;
+  fRecoTrackMVAConicalness = 0;
+  fRecoTrackMVAdEdxStart = 0;
+  fRecoTrackMVAdEdxEnd = 0;
+  fRecoTrackMVAdEdxEndRatio = 0;
+  fRecoTrackMVAElectron = 0;
+  fRecoTrackMVAPion = 0;
+  fRecoTrackMVAMuon = 0;
+  fRecoTrackMVAProton = 0;
+  fRecoTrackMVAPhoton = 0;
   
   fRecoTrackTruePDG.clear();
   fRecoTrackTruePrimary.clear();
@@ -339,7 +345,7 @@ void atm::Atmospheric::ResetCounters()
   fTotalMomRecoCalVectUnit.clear();
   fDaughterTrackTruePDG.clear();
 
-  fnGeantParticles = -1;
+  fnGeantParticles = 0;
   fThetaNuLepton.clear();
   fMCNuMomentum.clear();
   fMCPrimaryNuPDG.clear();
@@ -362,6 +368,7 @@ void atm::Atmospheric::ResetCounters()
   fTotalMomentumUnitVect.clear();
 
   fShowerID.clear();
+  fEnergyShowerLinearlyCorrected.clear();
   fShowerDirectionX.clear();
   fShowerDirectionY.clear();
   fShowerDirectionZ.clear();
@@ -412,6 +419,9 @@ void atm::Atmospheric::analyze(art::Event const &evt)
   if(!cvnResult->empty()) 
   {
       fCVN_NCScore = (*cvnResult)[0].GetNCProbability();
+     if(	(*cvnResult)[0].PredictedFlavour() == cvn::kFlavNC){
+      fIsNC_CVNPred = true;
+     }
   }
 
   std::unique_ptr<dune::EnergyRecoOutput> energyRecoHandle(std::make_unique<dune::EnergyRecoOutput>(fNeutrinoEnergyRecoAlg.CalculateNeutrinoEnergy(evt)));
@@ -648,27 +658,6 @@ void atm::Atmospheric::analyze(art::Event const &evt)
 
           fDaughterTrackID.push_back(trk.key());
         
-         // std::cout << "I'm accessing the MMVAPID, dad! " << std::endl;
-          std::vector<art::Ptr<anab::MVAPIDResult> > pids = fmpidt.at(trk.key());
-         // std::cout << "Track and MVAPID ok, dad! " << std::endl;
-          if (pids.at(0).isAvailable()){
-              fRecoTrackMVAEvalRatio.push_back(pids.at(0)->evalRatio);
-              fRecoTrackMVAConcentration.push_back(pids.at(0)->concentration);
-              fRecoTrackMVACoreHaloRatio.push_back(pids.at(0)->coreHaloRatio);
-              fRecoTrackMVAConicalness.push_back(pids.at(0)->conicalness);
-              fRecoTrackMVAdEdxStart.push_back(pids.at(0)->dEdxStart);
-              fRecoTrackMVAdEdxEnd.push_back(pids.at(0)->dEdxEnd);
-              fRecoTrackMVAdEdxEndRatio.push_back(pids.at(0)->dEdxEndRatio);
-              std::map<std::string,double> mvaOutMap = pids.at(0)->mvaOutput;
-              if (!(mvaOutMap.empty())){
-                  //Get the PIDs
-                  fRecoTrackMVAElectron.push_back(mvaOutMap["electron"]);
-                  fRecoTrackMVAPion.push_back(mvaOutMap["pich"]);
-                  fRecoTrackMVAMuon.push_back(mvaOutMap["muon"]);
-                  fRecoTrackMVAProton.push_back(mvaOutMap["proton"]);
-                  fRecoTrackMVAPhoton.push_back(mvaOutMap["photon"]);
-              }
-          }
 
          // fDaughterTrackTruePDG.push_back(particle->PdgCode());
           float trackADC = 0;
@@ -682,10 +671,34 @@ void atm::Atmospheric::analyze(art::Event const &evt)
           TVector3 TrackDirectionLongestTrack(trk->StartDirection().X(), trk->StartDirection().Y(), trk->StartDirection().Z());
 
           AllLengthTracksSummed += trk->Length();
+          //Variables for the longest track 
+
           if(trk->Length() > LongestTrack){
               LongestTrack = trk->Length();
               LongestTrackID = trk.key();
               fDiffCosAngleLongestTrack = TrackDirectionLongestTrack*TrueEventDirection;
+                       // std::cout << "I'm accessing the MMVAPID, dad! " << std::endl;
+               std::vector<art::Ptr<anab::MVAPIDResult> > pids = fmpidt.at(trk.key());
+          
+              if (pids.at(0).isAvailable()){
+                fRecoTrackMVAEvalRatio = pids.at(0)->evalRatio;
+                fRecoTrackMVAConcentration = pids.at(0)->concentration;
+                fRecoTrackMVACoreHaloRatio = pids.at(0)->coreHaloRatio;
+                fRecoTrackMVAConicalness = pids.at(0)->conicalness;
+                fRecoTrackMVAdEdxStart = pids.at(0)->dEdxStart;
+                fRecoTrackMVAdEdxEnd = pids.at(0)->dEdxEnd;
+                fRecoTrackMVAdEdxEndRatio = pids.at(0)->dEdxEndRatio;
+                std::map<std::string,double> mvaOutMap = pids.at(0)->mvaOutput;
+              if (!(mvaOutMap.empty())){
+                  //Get the PIDs
+                  fRecoTrackMVAElectron = mvaOutMap["electron"];
+                  fRecoTrackMVAPion = mvaOutMap["pich"];
+                  fRecoTrackMVAMuon = mvaOutMap["muon"];
+                  fRecoTrackMVAProton = mvaOutMap["proton"];
+                  fRecoTrackMVAPhoton = mvaOutMap["photon"];
+              }
+          }
+
           } 
 
           std::vector<art::Ptr<anab::ParticleID>> trackPID = TrackToPIDAssoc.at(trk.key());
@@ -809,22 +822,17 @@ void atm::Atmospheric::analyze(art::Event const &evt)
         {
           for (const art::Ptr<recob::Shower> &Shower : associatedShowers)
           {
-          
-          //const std::vector<art::Ptr<recob::Hit> > electronHits(dune_ana::DUNEAnaHitUtils::GetHitsOnPlane(dune_ana::DUNEAnaShowerUtils::GetHits(Shower, evt, fShowerModuleLabel),2));
-          //const double electronObservedCharge(dune_ana::DUNEAnaHitUtils::LifetimeCorrectedTotalHitCharge(clockData, detProp, electronHits));
-          //const double uncorrectedElectronEnergy(this->CalculateEnergyFromCharge(electronObservedCharge));
-//
-          //std::unique_ptr<dune::EnergyRecoOutput> energyRecoHandle_shower(std::make_unique<dune::EnergyRecoOutput>(fNeutrinoEnergyRecoAlg.CalculateNeutrinoEnergy(Shower,evt)));
-          //fEventRecoEnergy = energyRecoHandle->fNuLorentzVector.E();
-          //energyRecoOutput = std::make_unique<dune::EnergyRecoOutput>(fNeutrinoEnergyRecoAlg.CalculateNeutrinoEnergy(longestTrack, evt));
-          // else if (fRecoMethod == 2)
-          // energyRecoOutput = std::make_unique<dune::EnergyRecoOutput>(fNeutrinoEnergyRecoAlg.CalculateNeutrinoEnergy(highestChargeShower, evt));
-
-            
-            std::vector<art::Ptr<recob::SpacePoint>> showersp = ShowerToSpacePoint.at(Shower.key());
+           std::vector<art::Ptr<recob::SpacePoint>> showersp = ShowerToSpacePoint.at(Shower.key());
            //std::cout << "showersp.size() = " << showersp.size() << std::endl;
            if (showersp.size()==0) continue;
 
+           if (Shower->Direction().X() == -999) continue;
+           
+          const std::vector<art::Ptr<recob::Hit> > electronHits(dune_ana::DUNEAnaHitUtils::GetHitsOnPlane(dune_ana::DUNEAnaShowerUtils::GetHits(Shower, evt, fShowerModuleLabel),2));
+          const double electronObservedCharge(dune_ana::DUNEAnaHitUtils::LifetimeCorrectedTotalHitCharge(clockdata, detProp, electronHits));
+          const double uncorrectedElectronEnergy = fCalorimetryAlg.ElectronsFromADCArea(electronObservedCharge,2)*1./fRecombFactor/util::kGeVToElectrons;
+          double Showerenergy = (uncorrectedElectronEnergy - correctionIntercept) / correctionGradient;
+          fEnergyShowerLinearlyCorrected.push_back(Showerenergy);
             fShowerID.push_back(Shower->ID());
             fShowerDirectionX.push_back(Shower->Direction().X());
             fShowerDirectionY.push_back(Shower->Direction().Y());
@@ -837,9 +845,10 @@ void atm::Atmospheric::analyze(art::Event const &evt)
             fShowerLength.push_back(Shower->Length());
             fShowerOpenAngle.push_back(Shower->OpenAngle()); 
 
-                     
+            TVector3 showerDirection(Shower->Direction().X(), Shower->Direction().Y(), Shower->Direction().Z());
             std::vector<art::Ptr<recob::Hit>> ShowerHits = ShowerToHitAssoc.at(Shower.key());
             
+            TotalMomentumRecoRange += Showerenergy * showerDirection;
             if (Shower->Length() > fLongestShower) fLongestShower = Shower->Length();
             if (Shower->OpenAngle() > fLargeShowerOpenAngle) fLargeShowerOpenAngle = Shower->OpenAngle();
 
@@ -1005,6 +1014,7 @@ void atm::Atmospheric::beginJob()
   m_AtmTree->Branch("NPrimaries", &fNPrimaries);
   m_AtmTree->Branch("DaughterTrackID", &fDaughterTrackID);
   m_AtmTree->Branch("CVN_NCScore", &fCVN_NCScore);
+  m_AtmTree->Branch("IsNC_CVNPred", &fIsNC_CVNPred);
   
 
   m_AtmTree->Branch("TrackStartX", &fTrackStartX);
@@ -1034,6 +1044,7 @@ void atm::Atmospheric::beginJob()
   m_AtmTree->Branch("AvarageTrackLength", &fAvarageTrackLength);
 
   m_AtmTree->Branch("ShowerID", &fShowerID);
+  m_AtmTree->Branch("EnergyShowerLinearlyCorrected", &fEnergyShowerLinearlyCorrected);
   m_AtmTree->Branch("ShowerDirectionX", &fShowerDirectionX);
   m_AtmTree->Branch("ShowerDirectionY", &fShowerDirectionY);
   m_AtmTree->Branch("ShowerDirectionZ", &fShowerDirectionZ);

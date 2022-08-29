@@ -18,6 +18,7 @@ services:
     RandomNumberGenerator: {} #ART native random number generator
     ParticleInventoryService: @local::standard_particleinventoryservice
     BackTrackerService: @local::standard_backtrackerservice
+    PhotonBackTrackerService: @local::standard_photonbacktrackerservice
     FileCatalogMetadata:  @local::art_file_catalog_mc
     @table::dunefd_services
     @table::dunefd_simulation_services

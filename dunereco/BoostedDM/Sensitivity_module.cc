@@ -911,6 +911,14 @@ void bdm::Sensitivity::analyze(art::Event const &evt)
            //std::cout << "showersp.size() = " << showersp.size() << std::endl;
            if (showersp.size()==0) continue;
 
+           if (Shower->Direction().X() == -999) continue;
+            
+           const std::vector<art::Ptr<recob::Hit> > electronHits(dune_ana::DUNEAnaHitUtils::GetHitsOnPlane(dune_ana::DUNEAnaShowerUtils::GetHits(Shower, evt, fShowerModuleLabel),2));
+           const double electronObservedCharge(dune_ana::DUNEAnaHitUtils::LifetimeCorrectedTotalHitCharge(clockdata, detProp, electronHits));
+           const double uncorrectedElectronEnergy = fCalorimetryAlg.ElectronsFromADCArea(electronObservedCharge,2)*1./fRecombFactor/util::kGeVToElectrons;
+           double Showerenergy = (uncorrectedElectronEnergy - correctionIntercept) / correctionGradient;
+           fEnergyShowerLinearlyCorrected.push_back(Showerenergy);
+
             fShowerID.push_back(Shower->ID());
             fShowerDirectionX.push_back(Shower->Direction().X());
             fShowerDirectionY.push_back(Shower->Direction().Y());

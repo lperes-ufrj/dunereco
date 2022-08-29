@@ -96,8 +96,10 @@
 #include "dunereco/AnaUtils/DUNEAnaPFParticleUtils.h"
 #include "dunereco/AnaUtils/DUNEAnaTrackUtils.h"
 #include "dunereco/AnaUtils/DUNEAnaShowerUtils.h"
+#include "dunereco/AnaUtils/DUNEAnaHitUtils.h"
 #include "dunereco/FDSensOpt/NeutrinoEnergyRecoAlg/NeutrinoEnergyRecoAlg.h"
 #include "dunereco/FDSensOpt/FDSensOptData/EnergyRecoOutput.h"
+
 
 namespace atm
 {
@@ -210,25 +212,27 @@ private:
   double fAvarageTrackLength;
   float fEventRecoEnergy;
 
+  bool fIsNC_CVNPred;
+
   //Check Direction 
 
   double fDiffCosAngleTotalMom;
   double fDiffCosAngleLongestTrack;
 
 
-  //MVA bits
-  std::vector<double> fRecoTrackMVAEvalRatio;
-  std::vector<double> fRecoTrackMVAConcentration;
-  std::vector<double> fRecoTrackMVACoreHaloRatio;
-  std::vector<double> fRecoTrackMVAConicalness;
-  std::vector<double> fRecoTrackMVAdEdxStart;
-  std::vector<double> fRecoTrackMVAdEdxEnd;
-  std::vector<double> fRecoTrackMVAdEdxEndRatio;
-  std::vector<double> fRecoTrackMVAElectron;
-  std::vector<double> fRecoTrackMVAPion;
-  std::vector<double> fRecoTrackMVAMuon;
-  std::vector<double> fRecoTrackMVAProton;
-  std::vector<double> fRecoTrackMVAPhoton;
+  //MVA bits - Just one for event -> Takes the longest track
+  double fRecoTrackMVAEvalRatio;
+  double fRecoTrackMVAConcentration;
+  double fRecoTrackMVACoreHaloRatio;
+  double fRecoTrackMVAConicalness;
+  double fRecoTrackMVAdEdxStart;
+  double fRecoTrackMVAdEdxEnd;
+  double fRecoTrackMVAdEdxEndRatio;
+  double fRecoTrackMVAElectron;
+  double fRecoTrackMVAPion;
+  double fRecoTrackMVAMuon;
+  double fRecoTrackMVAProton;
+  double fRecoTrackMVAPhoton;
 
 
   //BackTracking
@@ -269,6 +273,7 @@ private:
   std::vector<int> fMCStatusCode;
   std::vector<bool> fisMCinside;
   std::vector<double> fTotalMomentumUnitVect;
+  std::vector<double> fEnergyShowerLinearlyCorrected;
 
   // Module labels and parameters
   std::string fGeneratorModuleLabel;
@@ -287,9 +292,9 @@ private:
   bool fShowerRecoSave;
   std::string fWireModuleLabel;
 
-
   trkf::TrackMomentumCalculator trkm;
   dune::NeutrinoEnergyRecoAlg fNeutrinoEnergyRecoAlg;
+  calo::CalorimetryAlg fCalorimetryAlg;                    ///< the calorimetry algorithm
 
 };
 #endif //DUNE_NEUTRINO_ATMOSPHERIC_ALG_H
