@@ -27,6 +27,8 @@ sensitivity:
    ShowerRecoSave: "true"
    WireModuleLabel:  "caldata"
    NeutrinoEnergyRecoAlg:       @local::dune10kt_neutrinoenergyrecoalg
+   CalorimetryAlg:          @local::dune10kt_calorimetryalgmc
+
 
 }
 

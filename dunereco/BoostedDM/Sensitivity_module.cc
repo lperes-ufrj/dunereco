@@ -97,8 +97,14 @@
 #include "dunereco/AnaUtils/DUNEAnaPFParticleUtils.h"
 #include "dunereco/AnaUtils/DUNEAnaTrackUtils.h"
 #include "dunereco/AnaUtils/DUNEAnaShowerUtils.h"
+#include "dunereco/AnaUtils/DUNEAnaHitUtils.h"
 #include "dunereco/FDSensOpt/NeutrinoEnergyRecoAlg/NeutrinoEnergyRecoAlg.h"
 #include "dunereco/FDSensOpt/FDSensOptData/EnergyRecoOutput.h"
+
+//For a linearly correction of the charge deposited by an electron shower
+double correctionGradient = 0.985;
+double correctionIntercept = -0.02;
+double fRecombFactor = 0.63;
 
 constexpr int kDefInt = -9999;
 constexpr int kDefMaxNRecoTracks = 1000;
@@ -172,6 +178,12 @@ private:
   int m_run;   ///<
   int m_event; ///<
   int fnGeantParticles;
+
+  double fDMOutMomentum;
+  double fDMOutEnergy;
+
+  double fDMInMomentum;
+  double fDMInEnergy;
 
   std::vector<int> fNPrimaryDaughters;
   int fNPrimaries;
@@ -290,6 +302,7 @@ private:
   std::vector<int> fMCStatusCode;
   std::vector<bool> fisMCinside;
   std::vector<double> fTotalMomentumUnitVect;
+  std::vector<double> fEnergyShowerLinearlyCorrected;
 
   // Module labels and parameters
   std::string fGeneratorModuleLabel;
@@ -311,6 +324,7 @@ private:
 
   trkf::TrackMomentumCalculator trkm;
   dune::NeutrinoEnergyRecoAlg fNeutrinoEnergyRecoAlg;
+  calo::CalorimetryAlg fCalorimetryAlg;                    ///< the calorimetry algorithm
 
 };
 
@@ -332,7 +346,8 @@ bdm::Sensitivity::Sensitivity(fhicl::ParameterSet const &p)
       fShowerRecoSave(p.get<bool>("ShowerRecoSave")),
       fWireModuleLabel(p.get<std::string>("WireModuleLabel")),
       fNeutrinoEnergyRecoAlg(p.get<fhicl::ParameterSet>("NeutrinoEnergyRecoAlg"),fTrackModuleLabel,fShowerModuleLabel,
-        fHitModuleLabel,fWireModuleLabel,fTrackModuleLabel,fShowerModuleLabel,fPFParticleModuleLabel)
+        fHitModuleLabel,fWireModuleLabel,fTrackModuleLabel,fShowerModuleLabel,fPFParticleModuleLabel),
+      fCalorimetryAlg(p.get<fhicl::ParameterSet>("CalorimetryAlg"))
 {
   // Call appropriate consumes<>() for any products to be retrieved by this module.
 }
@@ -422,8 +437,13 @@ void bdm::Sensitivity::ResetCounters()
   fTotalMomRecoCalVectUnit.clear();
   fDaughterTrackTruePDG.clear();
 
+
   nGeneratorParticles = 0;
   fnGeantParticles = 0;
+  fDMOutMomentum = 0;
+  fDMOutEnergy = 0;
+  fDMInMomentum = 0;
+  fDMInEnergy = 0;
   fThetaNuLepton.clear();
   fMCNuMomentum.clear();
   fMCPrimaryNuPDG.clear();
@@ -446,6 +466,7 @@ void bdm::Sensitivity::ResetCounters()
   fTotalMomentumUnitVect.clear();
 
   fShowerID.clear();
+  fEnergyShowerLinearlyCorrected.clear();
   fShowerDirectionX.clear();
   fShowerDirectionY.clear();
   fShowerDirectionZ.clear();
@@ -473,6 +494,10 @@ void bdm::Sensitivity::analyze(art::Event const &evt)
 
   // and the clock data for event
    auto const clockdata = art::ServiceHandle<detinfo::DetectorClocksService const>()->DataFor(evt);
+
+  //Detector properties
+  auto const detProp = art::ServiceHandle<detinfo::DetectorPropertiesService const>()->DataFor(evt, clockdata);
+
   // channel quality
   // lariov::ChannelStatusProvider const& channelStatus = art::ServiceHandle<lariov::ChannelStatusService const>()->GetProvider();
 
@@ -542,6 +567,13 @@ void bdm::Sensitivity::analyze(art::Event const &evt)
         fSunDirectionFromTrueBDM.emplace_back(tmp_SunDirection); // SAVE SUN DIRECTION !!!
         std::vector<double> tmp_DMInteracPos = {DMInteracPosition.Vect().X(), DMInteracPosition.Vect().Y(), DMInteracPosition.Vect().Z()};
         fPrimaryBDMVertex.emplace_back(tmp_DMInteracPos);
+        fDMInMomentum = MCParticleObjDMIn.P(0);
+        fDMInEnergy = MCParticleObjDMIn.E(0);
+      } else if (pdgCode == OUT_DM_CODE && (MCParticleObjDMIn.StatusCode() == 1 || MCParticleObjDMIn.StatusCode() == 15)){
+
+        fDMOutMomentum = MCParticleObjDMIn.P(0);
+        fDMOutEnergy = MCParticleObjDMIn.E(0);
+
       }
   
     }
@@ -899,7 +931,7 @@ void bdm::Sensitivity::analyze(art::Event const &evt)
         if(pfparticleVect[iPfp]->Parent() != neutrinoID) continue;
         // SHOWERS RECO INFO ====================================================================
         const std::vector<art::Ptr<recob::Shower>> &associatedShowers = pfPartToShowerAssoc.at(iPfp);
-        fnShowers += associatedShowers.size();
+       
        // std::cout << "associatedShowers.size() = " << associatedShowers.size() << std::endl;
 
         if (!associatedShowers.empty())
@@ -912,7 +944,7 @@ void bdm::Sensitivity::analyze(art::Event const &evt)
            if (showersp.size()==0) continue;
 
            if (Shower->Direction().X() == -999) continue;
-            
+           fnShowers++;
            const std::vector<art::Ptr<recob::Hit> > electronHits(dune_ana::DUNEAnaHitUtils::GetHitsOnPlane(dune_ana::DUNEAnaShowerUtils::GetHits(Shower, evt, fShowerModuleLabel),2));
            const double electronObservedCharge(dune_ana::DUNEAnaHitUtils::LifetimeCorrectedTotalHitCharge(clockdata, detProp, electronHits));
            const double uncorrectedElectronEnergy = fCalorimetryAlg.ElectronsFromADCArea(electronObservedCharge,2)*1./fRecombFactor/util::kGeVToElectrons;
@@ -931,9 +963,11 @@ void bdm::Sensitivity::analyze(art::Event const &evt)
             fShowerLength.push_back(Shower->Length());
             fShowerOpenAngle.push_back(Shower->OpenAngle()); 
 
-                     
+
+            TVector3 showerDirection(Shower->Direction().X(), Shower->Direction().Y(), Shower->Direction().Z());         
             std::vector<art::Ptr<recob::Hit>> ShowerHits = ShowerToHitAssoc.at(Shower.key());
-            
+            TotalMomentumRecoRange += Showerenergy * showerDirection;
+
             if (Shower->Length() > fLongestShower) fLongestShower = Shower->Length();
             if (Shower->OpenAngle() > fLargeShowerOpenAngle) fLargeShowerOpenAngle = Shower->OpenAngle();
 
@@ -1086,7 +1120,7 @@ void bdm::Sensitivity::beginJob()
   std::cout << " bdm::Sensitivity::beginJob() - initializing..." << std::endl;
 
   art::ServiceHandle<art::TFileService const> tfs;
-  m_BDMTree = tfs->make<TTree>("Atm", "AtmosphericAnalysis");
+  m_BDMTree = tfs->make<TTree>("bdm", "BoostedDMAnalysis");
   m_AllEvents = tfs->make<TTree>("AllEvents", "AllEvents");
 
   m_AllEvents->Branch("event", &m_event, "event/I");
@@ -1110,7 +1144,7 @@ void bdm::Sensitivity::beginJob()
   m_BDMTree->Branch("TrackEndY", &fTrackEndY);
   m_BDMTree->Branch("TrackEndZ", &fTrackEndZ);
 
-  m_BDMTree->Branch("fEventRecoEnergy", &fEventRecoEnergy);
+  m_BDMTree->Branch("EventRecoEnergy", &fEventRecoEnergy);
 
   m_BDMTree->Branch("PrimaryRecoVertex", &fPrimaryRecoVertex);
   m_BDMTree->Branch("PIDA_NoFlip", &fPIDANoFlip);
@@ -1130,6 +1164,7 @@ void bdm::Sensitivity::beginJob()
   m_BDMTree->Branch("AvarageTrackLength", &fAvarageTrackLength);
 
   m_BDMTree->Branch("ShowerID", &fShowerID);
+  m_BDMTree->Branch("EnergyShowerLinearlyCorrected", &fEnergyShowerLinearlyCorrected);
   m_BDMTree->Branch("ShowerDirectionX", &fShowerDirectionX);
   m_BDMTree->Branch("ShowerDirectionY", &fShowerDirectionY);
   m_BDMTree->Branch("ShowerDirectionZ", &fShowerDirectionZ);
@@ -1193,6 +1228,12 @@ void bdm::Sensitivity::beginJob()
   m_BDMTree->Branch("MCInitialPositionNu", &fMCInitialPositionNu);
   m_BDMTree->Branch("MCCosAzimuthNu", &fMCCosAzimuthNu);
   m_BDMTree->Branch("nGeantParticles", &fnGeantParticles);
+
+  m_BDMTree->Branch("DMOutMomentum", &fDMOutMomentum);
+  m_BDMTree->Branch("DMOutEnergy", &fDMOutEnergy);
+  m_BDMTree->Branch("DMInMomentum", &fDMInMomentum);
+  m_BDMTree->Branch("DMInEnergy", &fDMInEnergy);
+
   m_BDMTree->Branch("MCTrackId", &fMCTrackId);
   m_BDMTree->Branch("MCPdgCode", &fMCPdgCode);
   m_BDMTree->Branch("MCMother", &fMCMother);
